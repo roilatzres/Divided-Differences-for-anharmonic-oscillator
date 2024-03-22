@@ -2,11 +2,21 @@
 #include <vector>
 #include <functional>
 #include <cmath>
+#include <complex>
 
 
-// **********************************************************
-// ***************** permutation generation *****************
-// **********************************************************
+
+double factorial(unsigned int n) {
+    if (n == 0)
+        return 1;
+    else
+        return n * factorial(n - 1);
+}
+
+
+// ****************************************************************************************
+// ***************** permutation generation ***********************************************
+// ****************************************************************************************
 
 
 // Function to compute all possible permutations of steps to reach the target step on a ladder
@@ -49,52 +59,117 @@ std::vector<std::vector<int>> ladder_permutations(int total_steps, int target_st
 
 
 
-// ***********************************************************
-// ***************** coefficient calculation *****************
-// ***********************************************************
+// ***************************************************************************************
+// ***************** coefficient calculation *********************************************
+// ***************************************************************************************
 
 // Struct to represent divdiff element
 struct DivdiffElement {
     int energy;
     int omega;
+    int chi;
+    int coefficient; // either 1 or -1
 };
 
+// Calculate i^power
+std::complex<double> cal_i_pow(int power) {
+    if(power%4 == 0){
+        return 1;
+    }
+    else if(power%4 == 1){
+        return 1i;
+    }
+    else if(power%4 == 2){
+        return -1;
+    }
+    else{//power%4 == 3
+        return -1i;
+    }
+}
+
+// Calculate -i^power
+std::complex<double> cal_neg_i_pow(int power) {
+    if(power%4 == 0){
+        return 1;
+    }
+    else if(power%4 == 1){
+        return -1i;
+    }
+    else if(power%4 == 2){
+        return -1;
+    }
+    else{//power%4 == 3
+        return 1i;
+    }
+}
+
+
+
 // Function to compute coefficients and divdiff elements for a given permutation
-std::tuple<std::vector<std::vector<DivdiffElement>>, double, int> cal_coefficient(std::vector<int> permutation, int start_state) {
+std::tuple<std::vector<std::vector<DivdiffElement>>, std::complex<double>, int> cal_coefficient(std::vector<int> permutation, int start_state) {
     // Initialize divdiff elements, current state, and coefficient
-    std::vector<std::vector<DivdiffElement>> beta = {{{start_state, 0}}};
-    double coefficient = 1.0;
+    double energy_coefficient_real = 1.0;
     int current_state = start_state;
+
+    // initialize vector for all states in the permutation
+    std::vector<int> states;
+    states.push_back(start_state);
 
     // Iterate through each step in the permutation
     for (int i = 0; i < permutation.size(); ++i) {
-        std::vector<std::vector<DivdiffElement>> new_divdiff;
-
         // Update current state
         int new_state = current_state + permutation[i];
-
-        // Update coefficient
+        states.push_back(new_state);
+        
+        // Update energy_coefficient_real
         if (permutation[i] == 1) {
-            coefficient = sqrt(current_state + 1) * coefficient;
+            energy_coefficient_real = sqrt(current_state + 1) * energy_coefficient_real;
         } else {
-            coefficient = sqrt(current_state) * coefficient;
+            energy_coefficient_real = sqrt(current_state) * energy_coefficient_real;
         }
+        current_state = new_state;
+    }
+
+    std::complex<double> energy_coefficient_imag = cal_neg_i_pow(permutation.size()) * std::pow(0.5, permutation.size());
+    std::complex<double> energy_coefficient = energy_coefficient_imag * energy_coefficient_real;
+    int final_state = current_state;
+
+    // Initialize beta list with the final state
+    std::vector<std::vector<DivdiffElement>> beta = {{{states.back(), 0, 0, 1}}};
+
+    // iterate from end to start over the states and update the divdiff elements starting from the penultimate state
+    for (int i = states.size() - 2; i >= 0; --i) {
+        std::vector<std::vector<DivdiffElement>> new_divdiff;
 
         // Update divdiff elements
         for (int j = 0; j < beta.size(); ++j) {
-            // Extract the last element from beta[j]
-            DivdiffElement last_element = beta[j].back();
+            // Extract the first element from beta[j]
+            DivdiffElement first_element = beta[j].front();
 
-            // Create new divdiff elements
-            DivdiffElement plus = {last_element.energy + permutation[i], last_element.omega + 1};
-            DivdiffElement minus = {last_element.energy + permutation[i], last_element.omega - 1};
+            // prep new divdiff elements 
+            int p_mat = states[i] - states[i + 1]; // going backwards on states, checking previous state
+            
+            // create new divdiff elements according to the permutation matrix
+            int chi_factor;
+            if(p_mat == 1){
+                chi_factor = 1;
+            }
+            else{//p_mat == -1
+                chi_factor = -1;
+                // DivdiffElement plus = {states[i], first_element.omega + 1, first_element.chi + 1, first_element.coefficient * (1i / 2)};
+                // DivdiffElement minus = {states[i], first_element.omega - 1, first_element.chi + 1, first_element.coefficient * (-1i / 2)};
+            }
+            
+            DivdiffElement plus = {states[i], first_element.omega + 1, first_element.chi - chi_factor, first_element.coefficient};
+            DivdiffElement minus = {states[i], first_element.omega - 1, first_element.chi - chi_factor, -first_element.coefficient};
 
-            // Copy the list and append new elements
+            // Copy the list and insert new elements in the front
             std::vector<DivdiffElement> new_divdiff_plus = beta[j];
-            new_divdiff_plus.push_back(plus);
+            new_divdiff_plus.insert(new_divdiff_plus.begin(), plus);
 
             std::vector<DivdiffElement> new_divdiff_minus = beta[j];
-            new_divdiff_minus.push_back(minus);
+            new_divdiff_minus.insert(new_divdiff_minus.begin(), minus);
+            
 
             // Append new lists to new_divdiff
             new_divdiff.push_back(new_divdiff_plus);
@@ -102,9 +177,8 @@ std::tuple<std::vector<std::vector<DivdiffElement>>, double, int> cal_coefficien
         }
 
         beta = new_divdiff;
-        current_state = new_state;
     }
 
-    return std::make_tuple(beta, coefficient, current_state);
+    return std::make_tuple(beta, energy_coefficient, final_state);
 }
 
