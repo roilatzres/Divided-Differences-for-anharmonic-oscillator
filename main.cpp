@@ -112,7 +112,7 @@ int main() {
     int start_state = 0;
 
     //loop over all times
-    // for (int i = 0; i < times.size(); i++) { //*************************** revert to all times************************
+    // for (int i = 0; i < times.size(); i++) { 
     for (int i = 0; i < 2; i++) { //*************************** revert to all times************************
         t = times[i];
         //print time
@@ -122,7 +122,7 @@ int main() {
         std::vector<std::complex<double>> transition_amplitudes;
         
         //loop over all target steps
-        // for (int target = 0; target <= MAX_TARGET; target++) {//*************************** revert to all targets************************
+        // for (int target = 0; target <= MAX_TARGET; target++) {
         for (int target = 0; target <= 2; target++) {//*************************** revert to all targets************************
             std::complex<double> total_amp = 0;
 
@@ -181,16 +181,23 @@ int main() {
                     d.CurrentLength=0;
                     for (const auto& divdiff : combination) {
                         std::complex<double> n = (-1i * t * (divdiff.energy + divdiff.omega * omega  + divdiff.chi * chi));
+                        //print n
+                        std::cout << "n: " << n << std::endl;
                         d.AddElement(n);
                     }
                     int q = d.CurrentLength - 1;
                     double real = d.divdiffs[q].real().get_double();
                     double imag = d.divdiffs[q].imag().get_double();
+                    
+                    //print real and imag
+                    std::cout << "Divdiff = " << real << " + " << imag << "i" << std::endl;
 
-                    //normalize the divided differences
-                    // std::complex<double> norm = cal_neg_i_pow(q) * std::pow(t, q) / factorial(q);// (-it)^q / q!
+                    //print divdiffs elements
+                    d.PrintList(d.divdiffs, d.CurrentLength, "Divdiffs");
+
+                    //normalize the divided differences by (-it)^q / q! * beta_coefficient
                     std::complex<double> norm_real = cal_neg_i_pow(q) * std::pow(t, q) * real / factorial(q) ;
-                    std::complex<double> norm_imag = cal_neg_i_pow(q+1) * std::pow(t, q) * imag / factorial(q);
+                    std::complex<double> norm_imag = cal_neg_i_pow(q+1) * std::pow(t, q) * (-imag) / factorial(q);// (-it)^q / q! * Imag = (-it)^q / q! * (i) * Imag.real = (-i)^q+1 * t^q * -Imag.real / q!
                     perm_amp = perm_amp + (norm_real + norm_imag) * beta_coefficient;
                     
                     //print perm_amp
