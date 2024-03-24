@@ -112,8 +112,7 @@ int main() {
     int start_state = 0;
 
     //loop over all times
-    // for (int i = 0; i < times.size(); i++) { 
-    for (int i = 0; i < 2; i++) { //*************************** revert to all times************************
+    for (int i = 0; i < times.size(); i++) { 
         t = times[i];
         //print time
         std::cout << "Time: " << t << std::endl;
@@ -122,16 +121,20 @@ int main() {
         std::vector<std::complex<double>> transition_amplitudes;
         
         //loop over all target steps
-        // for (int target = 0; target <= MAX_TARGET; target++) {
-        for (int target = 0; target <= 2; target++) {//*************************** revert to all targets************************
+        for (int target = 0; target <= MAX_TARGET; target++) {
             std::complex<double> total_amp = 0;
 
             //print target
             std::cout << "Target: " << target << std::endl;
             
             //ladder_permutations(max_step, target, Q = total moves)
-            // auto permutations = ladder_permutations(MAX_STEP, i, 6); //*************************** revert to Q = 6************************
-            auto permutations = ladder_permutations(MAX_STEP, target, 2); //Q = 2
+            int q;
+            if (target % 2 == 0) {
+               q = 6;
+            }else{
+                q = 7;
+            }
+            auto permutations = ladder_permutations(MAX_STEP, target, q);
             
             //there are no permutaions - skip
             if (permutations.size() == 0) {
@@ -139,14 +142,14 @@ int main() {
                 continue;
             }
 
-            //print all permutations
-            std::cout << "Possible permutations:" << std::endl;
-            for (const auto& combination : permutations) {
-                for (int step : combination) {
-                    std::cout << step << " ";
-                }
-                std::cout << std::endl;
-            }
+            // //print all permutations
+            // std::cout << "Possible permutations:" << std::endl;
+            // for (const auto& combination : permutations) {
+            //     for (int step : combination) {
+            //         std::cout << step << " ";
+            //     }
+            //     std::cout << std::endl;
+            // }
 
             // loop over all permutations
             for (const auto& permutation : permutations) {
@@ -158,16 +161,16 @@ int main() {
                 std::complex<double> energy_coefficient = std::get<1>(result);
                 int final_state = std::get<2>(result);
 
-                //print beta
-                std::cout << "Beta: " << std::endl;
-                for (const auto& combination : beta) {
-                    for (const auto& divdiff : combination) {
-                        std::cout << "(" << divdiff.energy << ", " << divdiff.omega << ", " << divdiff.chi << ", " << divdiff.coefficient << ") ";
-                    }
-                    std::cout << std::endl;
-                }
-                std::cout << "Coefficient: " << energy_coefficient << std::endl;
-                std::cout << "Final state: " << final_state << std::endl;
+                // //print beta
+                // std::cout << "Beta: " << std::endl;
+                // for (const auto& combination : beta) {
+                //     for (const auto& divdiff : combination) {
+                //         std::cout << "(" << divdiff.energy << ", " << divdiff.omega << ", " << divdiff.chi << ", " << divdiff.coefficient << ") ";
+                //     }
+                //     std::cout << std::endl;
+                // }
+                // std::cout << "Coefficient: " << energy_coefficient << std::endl;
+                // std::cout << "Final state: " << final_state << std::endl;
 
                 //calculate divided differences
                 divdiff_init();
@@ -182,8 +185,8 @@ int main() {
                     d.CurrentLength=0;
                     for (const auto& divdiff : combination) {
                         std::complex<double> n = (-1i * t * (divdiff.energy + divdiff.omega * omega  + divdiff.chi * chi));
-                        //print n
-                        std::cout << "n: " << n << std::endl;
+                        // //print n
+                        // std::cout << "n: " << n << std::endl;
                         d.AddElement(n);
                     }
                     int q = d.CurrentLength - 1;
@@ -191,18 +194,18 @@ int main() {
                     double imag = d.divdiffs[q].imag().get_double();
                     
                     //print real and imag
-                    std::cout << "Divdiff = " << real << " + " << imag << "i" << std::endl;
+                    // std::cout << "Divdiff = " << real << " + " << imag << "i" << std::endl;
 
-                    //print divdiffs elements
-                    d.PrintList(d.divdiffs, d.CurrentLength, "Divdiffs");
+                    // //print divdiffs elements
+                    // d.PrintList(d.divdiffs, d.CurrentLength, "Divdiffs");
 
                     //normalize the divided differences by (-it)^q / q! * beta_coefficient
                     std::complex<double> norm_real = cal_neg_i_pow(q) * std::pow(t, q) * real / factorial(q) ;
                     std::complex<double> norm_imag = cal_neg_i_pow(q+1) * std::pow(t, q) * (-imag) / factorial(q);// (-it)^q / q! * Imag = (-it)^q / q! * (i) * Imag.real = (-i)^q+1 * t^q * -Imag.real / q!
                     perm_amp = perm_amp + (norm_real + norm_imag) * beta_coefficient;
                     
-                    //print perm_amp
-                    std::cout << "Perm amplitude: " << perm_amp << std::endl;
+                    // //print perm_amp
+                    // std::cout << "Perm amplitude: " << perm_amp << std::endl;
 
                 }
                 total_amp += perm_amp * energy_coefficient;
@@ -214,11 +217,11 @@ int main() {
             transition_amplitudes.push_back(total_amp);
 
         }
-        //print transition amplitudes
-        std::cout << "Transition amplitudes: " << std::endl;
-        for (const auto& amp : transition_amplitudes) {
-            std::cout << amp << std::endl;
-        }
+        // //print transition amplitudes
+        // std::cout << "Transition amplitudes: " << std::endl;
+        // for (const auto& amp : transition_amplitudes) {
+        //     std::cout << amp << std::endl;
+        // }
         all_transition_amplitudes.push_back(transition_amplitudes);
 
     }
