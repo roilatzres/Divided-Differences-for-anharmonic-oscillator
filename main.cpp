@@ -135,6 +135,7 @@ int main() {
             
             //there are no permutaions - skip
             if (permutations.size() == 0) {
+                transition_amplitudes.push_back(total_amp);
                 continue;
             }
 
@@ -213,14 +214,22 @@ int main() {
             transition_amplitudes.push_back(total_amp);
 
         }
+        //print transition amplitudes
+        std::cout << "Transition amplitudes: " << std::endl;
+        for (const auto& amp : transition_amplitudes) {
+            std::cout << amp << std::endl;
+        }
         all_transition_amplitudes.push_back(transition_amplitudes);
 
-        //print all transition amplitudes
-        std::cout << "All transition amplitudes: " << std::endl;
-        for (const auto& transition : transition_amplitudes) {
-            std::cout << transition << std::endl;
-        }
+    }
 
+    //print all transition amplitudes with location in the vector
+    std::cout << "All transition amplitudes: " << std::endl;
+    for (int i = 0; i < all_transition_amplitudes.size(); i++) {
+        std::cout << "Time: " << times[i] << std::endl;
+        for (int j = 0; j < all_transition_amplitudes[i].size(); j++) {
+            std::cout << "Target: " << j << " Amplitude: " << all_transition_amplitudes[i][j] << std::endl;
+        }
     }
 
     return 0;
