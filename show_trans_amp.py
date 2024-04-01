@@ -8,8 +8,8 @@ from warnings import warn
 from qutip import *
 
 
-amp_g_json = [ 'amplitudes_g_chg_amp.json', 'amplitudes_e_chg_amp.json', 'amplitudes_e_chg_amp1.json' ]
-amp_e_json = ['amplitudes_e_allQ.json' , 'amplitudes_e_chg_amp.json']
+amp_g_json = [ 'amplitudes_g_chg_amp.json',  'amplitudes_e_chg_amp1.json' ]
+# amp_e_json = ['amplitudes_e_allQ.json' , 'amplitudes_e_chg_amp.json']
 
 # for file in amp_e_json:
 for file in amp_g_json:
