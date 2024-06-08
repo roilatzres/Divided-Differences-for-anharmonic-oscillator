@@ -3,10 +3,12 @@
 #include <functional>
 #include <cmath>
 #include <complex>
+#include <fstream>
+#include <string>
 #include "include\divdiffcomplex.h"
 #include "include\permutation.h"
-#include <fstream>
 #include "include\json-develop\single_include\nlohmann\json.hpp"
+#include "include\Serializer.h"
 
 
 #define  MAX_STEP 10
@@ -14,76 +16,154 @@
 
 
 int main() {
-    // ***********************************Example usage for coefficient calculation*********************************
-    std::vector<int> permutation = {1, 1};
-    int start_state = 1;
-    auto result = cal_coefficient(permutation, start_state);
-    auto beta = std::get<0>(result);
-    double coefficient = std::get<1>(result);
-    int final_state = std::get<2>(result);
+//     // ***********************************Example usage for coefficient calculation*********************************
+//     std::vector<int> permutation = {1, 1};
+//     int start_state = 1;
+//     auto result = cal_coefficient(permutation, start_state);
+//     auto beta = std::get<0>(result);
+//     double coefficient = std::get<1>(result);
+//     int final_state = std::get<2>(result);
 
-    // Output result
-    //print beta
-    std::cout << "Beta: " << std::endl;
-    for (const auto& combination : beta) {
-        for (const auto& divdiff : combination) {
-            std::cout << "(" << divdiff.energy << ", " << divdiff.omega << ") ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << "Coefficient: " << coefficient << std::endl;
-    std::cout << "Final state: " << final_state << std::endl;
+//     // Output result
+//     //print beta
+//     std::cout << "Beta: " << std::endl;
+//     for (const auto& combination : beta) {
+//         for (const auto& divdiff : combination) {
+//             std::cout << "(" << divdiff.energy << ", " << divdiff.omega << ") ";
+//         }
+//         std::cout << std::endl;
+//     }
+//     std::cout << "Coefficient: " << coefficient << std::endl;
+//     std::cout << "Final state: " << final_state << std::endl;
 
 
-    double multiplier = 4;
-    double sigma = 48;
-    double timestep = 1;
-    double chi = -279e-6 * 2 * M_PI; // Assigning the value to chi
-   double detuning = chi / 100 ;
+//     double multiplier = 4;
+//     double sigma = 48;
+//     double timestep = 1;
+//     double chi = -279e-6 * 2 * M_PI; // Assigning the value to chi
+//    double detuning = chi / 100 ;
 
-//    ***********************************Example usage for divided differences*********************************
-   divdiff_init();
+// //    ***********************************Example usage for divided differences*********************************
+//    divdiff_init();
 
-   for (const auto& path : beta) {
-       divdiffcomplex d(MAX_STEP,500);
+//    for (const auto& path : beta) {
+//        divdiffcomplex d(MAX_STEP,500);
 
-       d.CurrentLength=0;
+//        d.CurrentLength=0;
 
-       for (const auto& element : path) {
-           std::cout << "(" << element.energy << ", " << element.omega << ") ";
-           std::complex<double> n= -1i * (element.energy); // TODO: add time dependence, currently only for t=1
-           d.AddElement(n);
-       }
-       std::cout << std::endl << "finished path" << std::endl ;
-       //print divdiffs elements
-        d.PrintList(d.divdiffs, d.CurrentLength, "Divdiffs");
+//        for (const auto& element : path) {
+//            std::cout << "(" << element.energy << ", " << element.omega << ") ";
+//            std::complex<double> n= -1i * (element.energy); // TODO: add time dependence, currently only for t=1
+//            d.AddElement(n);
+//        }
+//        std::cout << std::endl << "finished path" << std::endl ;
+//        //print divdiffs elements
+//         d.PrintList(d.divdiffs, d.CurrentLength, "Divdiffs");
        
-        //  for (int i = 0; i < d.CurrentLength; i++) {
-        //         std::cout << std::endl;
-        //  }
+//         //  for (int i = 0; i < d.CurrentLength; i++) {
+//         //         std::cout << std::endl;
+//         //  }
 
-        std::cout << std::endl << "final element" << std::endl ;
-        std::cout << d.divdiffs[d.CurrentLength -1].real().print() << " + " << d.divdiffs[d.CurrentLength -1].imag().print() << std::endl;
-   }
+//         std::cout << std::endl << "final element" << std::endl ;
+//         std::cout << d.divdiffs[d.CurrentLength -1].real().print() << " + " << d.divdiffs[d.CurrentLength -1].imag().print() << std::endl;
+//    }
 
 
-    divdiff_clear_up();
+//     divdiff_clear_up();
 
-// ******************************* Example usage for permutation generation*********************************
-    int total_steps = 10;
-    int target_step = 4;
-    int moves = 6;
+// // ******************************* Example usage for permutation generation*********************************
+//     int total_steps = 10;
+//     int target_step = 4;
+//     int moves = 6;
 
-    auto result = ladder_permutations(total_steps, target_step, moves);
+//     auto result = ladder_permutations(total_steps, target_step, moves);
 
-    // Output result
-    std::cout << "Possible permutations:" << std::endl;
-    for (const auto& combination : result) {
-        for (int step : combination) {
-            std::cout << step << " ";
+//     // Output result
+//     std::cout << "Possible permutations:" << std::endl;
+//     for (const auto& combination : result) {
+//         for (int step : combination) {
+//             std::cout << step << " ";
+//         }
+//         std::cout << std::endl;
+//     }
+
+// ******************************* Example usage for serializer*********************************
+    int total_steps = 100;
+    int start_state = 0;
+
+    // Create a 3D vector to store the results
+    std::vector<std::vector<std::vector<
+    std::tuple<std::vector<std::vector<int>>, std::vector<std::tuple<std::vector<std::vector<DivdiffElement>>, std::complex<double>, int>>>
+    >>> results;
+
+    // Loop over target steps and moves
+    for (int target_step = 0; target_step <= 11; ++target_step) {
+        // Add a new 2D vector for this target step
+        results.push_back(std::vector<std::vector<
+            std::tuple<std::vector<std::vector<int>>, std::vector<std::tuple<std::vector<std::vector<DivdiffElement>>, std::complex<double>, int>>>
+        >>());
+
+        for (int q = 0; q <= 12; ++q) {
+            std::string filename = "C:\\Users\\Latzres\\OneDrive - Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator\\include\\permutations\\dispersive_perms\\dispersive_perms_" 
+                + std::to_string(target_step) + "_" + std::to_string(q) + ".txt";
+
+            // Check if file exists
+            std::ifstream infile(filename);
+            if (!infile) {
+                std::cout << "File " << filename << " does not exist." << std::endl;
+                // Generate and save permutations 
+                generate_and_save_results(total_steps, target_step, q, start_state, filename);
+            } else {
+
+                // Add a new vector for this q
+                results[target_step].push_back(std::vector<
+                    std::tuple<std::vector<std::vector<int>>, std::vector<std::tuple<std::vector<std::vector<DivdiffElement>>, std::complex<double>, int>>>
+                >());
+
+                // Load results from file
+                std::tuple<std::vector<std::vector<int>>, std::vector<std::tuple<std::vector<std::vector<DivdiffElement>>, std::complex<double>, int>>> value = load_results(filename);
+                results[target_step][q].push_back(value);
+            }
         }
-        std::cout << std::endl;
     }
+
+    // // Output results
+    // for (int target_step = 0; target_step <= 7; ++target_step) {
+    //     for (int q = 0; q <= 8; ++q) {
+    //         std::cout << "Target step: " << target_step << ", q: " << q << std::endl;
+    //         auto value = results[target_step][q][0];
+    //         auto permutations = std::get<0>(value);
+    //         auto coefficients = std::get<1>(value);
+
+    //         std::cout << "Permutations:" << std::endl;
+    //         for (const auto& combination : permutations) {
+                
+    //             for (int step : combination) {
+    //                 std::cout << step << " ";
+    //             }
+    //             std::cout << std::endl;
+    //         }
+    //         // print permutation size
+    //         std::cout << "Permutation size: " << permutations.size() << std::endl;
+
+    //         std::cout << "Coefficients:" << std::endl;
+    //         for (const auto& coefficient : coefficients) {
+    //             auto divdiff = std::get<0>(coefficient);
+    //             auto energy_coefficient = std::get<1>(coefficient);
+    //             auto final_state = std::get<2>(coefficient);
+
+    //             std::cout << "Energy coefficient: " << energy_coefficient.real() << " + " << energy_coefficient.imag() << "i" << std::endl;
+    //             std::cout << "Final state: " << final_state << std::endl;
+    //             std::cout << "Divdiff elements:" << std::endl;
+    //             for (const auto& elements : divdiff) {
+    //                 for (const auto& element : elements) {
+    //                     std::cout << "(" << element.energy << ", " << element.omega << ", " << element.chi << ", " << element.coefficient << ") ";
+    //                 }
+    //                 std::cout << std::endl;
+    //             }
+    //         }
+    //     }
+    // }
 
 return 0;
 

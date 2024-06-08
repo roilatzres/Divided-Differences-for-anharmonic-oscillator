@@ -1,3 +1,6 @@
+#ifndef PERMUTATION_H
+#define PERMUTATION_H
+
 #include <iostream>
 #include <vector>
 #include <functional>
@@ -130,8 +133,12 @@ std::tuple<std::vector<std::vector<DivdiffElement>>, std::complex<double>, int> 
         current_state = new_state;
     }
 
-    std::complex<double> energy_coefficient_imag = cal_neg_i_pow(permutation.size()) * std::pow(0.0005, permutation.size());
-    std::complex<double> energy_coefficient = energy_coefficient_imag * energy_coefficient_real;
+    // TODO: check why the E-3 factor is needed
+    // FIXME: the factor is amplitude!!
+    // std::complex<double> energy_coefficient_imag = cal_neg_i_pow(permutation.size()) * std::pow(0.02, permutation.size());
+    // std::complex<double> energy_coefficient = energy_coefficient_imag * energy_coefficient_real;
+    std::complex<double> energy_coefficient = energy_coefficient_real;
+
     int final_state = current_state;
 
     // Initialize beta list with the final state
@@ -182,3 +189,5 @@ std::tuple<std::vector<std::vector<DivdiffElement>>, std::complex<double>, int> 
     return std::make_tuple(beta, energy_coefficient, final_state);
 }
 
+
+#endif // PERMUTATION_H
