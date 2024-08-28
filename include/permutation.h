@@ -20,6 +20,52 @@ double factorial(unsigned int n) {
         return n * factorial(n - 1);
 }
 
+//factorial for ExExFloat
+ExExFloat ExFactorial(ExExFloat base, int n) {
+    if (n == 1)
+        return (ExExFloat) 1;
+    else{
+        // //print base and n 
+        // std::cout << "base: " << std::endl;
+        // base.print();
+        // std::cout << std::endl;
+        // std::cout << "n: " << n << std::endl;
+        // ExExFloat one = 1;
+        // //print one
+        // std::cout << "one: " << std::endl;
+        // one.print();
+        // std::cout << std::endl;
+
+        // ExExFloat new_base;
+        // cout << "base: " << endl;
+        // new_base = base - one;
+        // //print new_base
+        // std::cout << "new_base: " << std::endl;
+        // new_base.print();
+        // std::cout << std::endl;
+        
+        //calculate result
+        ExExFloat result = base * ExFactorial(base - 1, n - 1);
+        // // //print result
+        // std::cout << "result: "  << std::endl;
+        // result.print();
+        // std::cout << std::endl;
+        return result;
+    }
+}
+
+//power for ExExFloat
+ExExFloat ExPow(ExExFloat base, int exp) {
+    if (exp == 0)
+        return 1;
+    else{
+        ExExFloat result = base * ExPow(base, exp - 1);
+        // //print result
+        // std::cout << "result: "  << std::endl;
+        // result.print(); 
+        return result;
+    }
+}
 
 // ****************************************************************************************
 // ***************** permutation generation ***********************************************
@@ -74,7 +120,7 @@ vector<vector<Step>> jc_ladder_permutations(int target_first, int target_second,
 }
 
 // Function to compute all possible permutations of steps to reach the target step on a ladder
-vector<vector<int>> ladder_permutations(int total_steps, int target_step, int moves) {
+vector<vector<int>> ladder_permutations(int start_step, int top_step, int target_step, int moves) {
     vector<vector<int>> all_combinations;
 
     // Backtrack function to generate permutations recursively
@@ -86,7 +132,7 @@ vector<vector<int>> ladder_permutations(int total_steps, int target_step, int mo
         }
 
         // Base case: If remaining moves is 0 but current step is not target step, return
-        if (remaining_moves == 0 || curr_step >= total_steps) {
+        if (remaining_moves == 0 || curr_step > top_step) {
             return;
         }
 
@@ -105,8 +151,8 @@ vector<vector<int>> ladder_permutations(int total_steps, int target_step, int mo
 
     // Initialize combination list
     vector<int> combination;
-    // Start backtracking from step 0 with given number of moves
-    backtrack(0, moves, combination);
+    // Start backtracking from the given start step with given number of moves
+    backtrack(start_step, moves, combination);
 
     return all_combinations;
 }
@@ -328,7 +374,7 @@ void cal_divdiff_aux(divdiffcomplex &d, const vector<DivdiffElement> &divdiff, c
 
 // set divdiff calculation
 complex<double> cal_divdiff(const std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>> &coefficient,
-                             double t, int q, int qubit, double chi, double omega){
+                             double t, int q, int qubit, double chi, double omega, int target_step) {
     auto divdiff = std::get<0>(coefficient);
     auto energy_coefficient = std::get<1>(coefficient);
     auto final_state = std::get<2>(coefficient);
@@ -345,12 +391,20 @@ complex<double> cal_divdiff(const std::tuple<std::vector<DivdiffElement>, double
     int CurrentLength = 0;
     cal_divdiff_aux(d, divdiff, states, &CurrentLength, &num_elem, t, q, qubit, chi, omega, &sum_final_elements);
     
-    // // print sum_final_elements
-    // std::cout << "Sum final elements: " << sum_final_elements << std::endl;
+    // print sum_final_elements
+    if(q == 13 && target_step == 13)
+        std::cout << "Sum final elements: " << sum_final_elements << std::endl;
     
     return sum_final_elements * energy_coefficient;
 
         
 }
+
+
+/*********** ***************** permutations for large q ***************** *****************/
+
+// Function to compute all possible permutations of steps to reach the target step on a ladder
+// with a condition on a middle number of photons
+
 
 #endif // PERMUTATION_H

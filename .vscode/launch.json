@@ -5,12 +5,14 @@
             "name": "C++ Debug",
             "type": "cppdbg",
             "request": "launch",
-            "program": "C:\\Users\\Latzres\\OneDrive - Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator\\main.exe", // Escaped backslashes
-            "args": ["0.005", "8"],
+            // "program": "C:\\Users\\Latzres\\OneDrive - Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator\\main.exe", // Escaped backslashes
+            "program": "${workspaceFolder}\\main.exe", // Escaped backslashes
+            "args": ["0.05", "40"],
             "stopAtEntry": false,
-            "cwd": "C:\\Users\\Latzres\\OneDrive - Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator", // Escaped backslashes
+            // "cwd": "C:\\Users\\Latzres\\OneDrive - Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator", // Escaped backslashes
+            "cwd": "${workspaceFolder}", // Escaped backslashes
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
@@ -20,7 +22,8 @@
                 }
             ],
             "preLaunchTask": "build",
-            "miDebuggerPath": "C:/cygwin64/bin/gdb.exe", // Correct path to GDB in Cygwin
+            "miDebuggerPath": "C:/cygwin64/bin/gdb.exe", // Latzres laptop - Correct path to GDB in Cygwin
+            // "miDebuggerPath": "C:/msys64/ucrt64/bin/gdb.exe", // Correct path to GDB in Cygwin
             "logging": {
                 "moduleLoad": true,
                 "trace": true,

@@ -8,7 +8,13 @@ from warnings import warn
 from qutip import *
 
 
-amp_g_json = [ 'amplitudes_g_chg_amp.json',  'amplitudes_e_chg_amp1.json' ]
+# amp_g_json = [ 'amplitudes_g_chg_amp.json',  'amplitudes_e_chg_amp.json' ]
+# amp_g_json = [ 'amplitudes_e_chg_amp0.020000_q13.json',  'amplitudes_g_chg_amp0.020000_q13.json' ]
+# amp_g_json = [ 'amplitudes_e_chg_amp0.010000_q13.json',  'amplitudes_g_chg_amp0.010000_q13.json' ]
+# amp_g_json = [ 'amplitudes_e_chg_amp0.010000_q12.json',  'amplitudes_g_chg_amp0.010000_q12.json' ]
+amp_g_json = [ 'amplitudes_e_chg_amp0.007000_q12.json',  'amplitudes_g_chg_amp0.007000_q12.json' ]
+
+# amp_g_json = [ 'amplitudes_g_chg_amp0.005000_q10.json' ]
 # amp_e_json = ['amplitudes_e_allQ.json' , 'amplitudes_e_chg_amp.json']
 
 # for file in amp_e_json:
@@ -39,3 +45,5 @@ for file in amp_g_json:
     alpha_t = expect(a, psi_t)
     plt.figure()
     plt.plot(alpha_t.real, alpha_t.imag)
+
+    print(alpha_t[-1].real, alpha_t[-1].imag)

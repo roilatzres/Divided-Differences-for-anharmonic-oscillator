@@ -378,8 +378,8 @@ vector<std::tuple<vector<DivdiffElement>, double, int, vector<int>>> load_coeffi
 
 
 // Function to generate all permutations and save all coefficients to a file
-void generate_and_save_coefficients(int total_steps, int target_step, int moves, const std::string& filename) {
-    vector<vector<int>> permutations = ladder_permutations(total_steps, target_step, moves);
+void generate_and_save_coefficients(int start_step, int total_steps, int target_step, int moves, const std::string& filename) {
+    vector<vector<int>> permutations = ladder_permutations(start_step, total_steps, target_step, moves);
     int start_state = 0;
     vector<std::tuple<vector<DivdiffElement>, double, int, vector<int>>> all_coefficients;
 
