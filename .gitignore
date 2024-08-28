@@ -1,1 +1,7 @@
-include\parms\dispersive\*.txt
+include\parms\dispersive\*
+trans_amp_json\*
+output_lop\*
+main.cpp
+output_g_chg_amp1.txt
+amplitudes_g_chg_amp.json
+amplitudes_e_chg_amp1.json
