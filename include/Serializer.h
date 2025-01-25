@@ -329,7 +329,13 @@ void save_coefficients(const vector<std::tuple<vector<DivdiffElement>, double, i
     size_t size = coefficients.size();
     file.write(reinterpret_cast<const char*>(&size), sizeof(size));
     for (const auto& coeff : coefficients) {
-        const auto& [beta, energy_coefficient_real, final_state, states] = coeff;
+        // const auto& [beta, energy_coefficient_real, final_state, states] = coeff;
+        const auto& beta = std::get<0>(coeff);
+        const auto& energy_coefficient_real = std::get<1>(coeff);
+        const auto& final_state = std::get<2>(coeff);
+        const auto& states = std::get<3>(coeff);
+
+
         size_t beta_size = beta.size();
         file.write(reinterpret_cast<const char*>(&beta_size), sizeof(beta_size));
         for (const auto& elem : beta) {
@@ -355,7 +361,13 @@ vector<std::tuple<vector<DivdiffElement>, double, int, vector<int>>> load_coeffi
     file.read(reinterpret_cast<char*>(&size), sizeof(size));
     vector<std::tuple<vector<DivdiffElement>, double, int, vector<int>>> coefficients(size);
     for (auto& coeff : coefficients) {
-        auto& [beta, energy_coefficient_real, final_state, states] = coeff;
+        // auto& [beta, energy_coefficient_real, final_state, states] = coeff;
+        auto& beta = std::get<0>(coeff);
+        auto& energy_coefficient_real = std::get<1>(coeff);
+        auto& final_state = std::get<2>(coeff);
+        auto& states = std::get<3>(coeff);
+
+        
         size_t beta_size;
         file.read(reinterpret_cast<char*>(&beta_size), sizeof(beta_size));
         beta.resize(beta_size);
@@ -409,4 +421,38 @@ complex<double> load_complex_from_file(const std::string& filename) {
     complex<double> number;
     file.read(reinterpret_cast<char*>(&number), sizeof(number));
     return number;
+}
+
+
+void load_all_coefficients(std::vector<std::vector<std::vector<std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>>>>> &all_coefficients, int start_state, int total_steps, int max_target, int q_max)
+{
+    // Loop over target steps and moves
+    for (int target_step = 0; target_step <= max_target; ++target_step)
+    {
+        all_coefficients.push_back(vector<vector<std::tuple<vector<DivdiffElement>, double, int, vector<int>>>>());
+
+        for (int q = 0; q <= q_max; ++q)
+        {
+            std::string filename = "./include/parms/dispersive/coeff/dispersive_coeff_" + std::to_string(target_step) + "_" + std::to_string(q) + ".bin";
+
+            // Check if file exists
+            std::ifstream infile(filename);
+            if (!infile)
+            {
+                std::cout << "File " << filename << " does not exist." << std::endl;
+                // generate and save coefficients
+                generate_and_save_coefficients(start_state, total_steps, target_step, q, filename);
+            }
+            else
+            {
+
+                // Add a new vector for this q
+                all_coefficients[target_step].push_back(vector<std::tuple<vector<DivdiffElement>, double, int, vector<int>>>());
+
+                // Load all_coefficients from file
+                vector<std::tuple<vector<DivdiffElement>, double, int, vector<int>>> value = load_coefficients(filename);
+                all_coefficients[target_step][q] = value;
+            }
+        }
+    }
 }
