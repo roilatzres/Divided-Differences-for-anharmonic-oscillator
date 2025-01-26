@@ -14,7 +14,7 @@
 using std::vector;
 using std::complex;
 
-// #define  MAX_STEP 14
+#define  MAX_STEP 100
 #define  MAX_TARGET 8
 #define MAX_Q 10
 
@@ -32,6 +32,7 @@ int main(int argc, char* argv[]) {
 
 
     //TODO: notice that amp is double of the value to put in antiSymSim
+    
     // initial values
     double amplitude = 0.02;
     int q_max = 12; 
@@ -87,15 +88,16 @@ int main(int argc, char* argv[]) {
     
     
     // load_all_coefficients(all_coefficients, start_state, total_steps, MAX_TARGET, q_max);
-
+    
 
     // int qubit = 1;
     for (int qubit = 0; qubit <=1; qubit++){
 
         //loop over all times
-        for (int i = 191; i < times.size(); i++) { //TODO: i=0
-            // t = times[i];
-            t = 192;
+        // for (int i = 0; i < times.size(); i++) { //TODO: i=0
+        for (int i = 0; i < 97; i++) { //TODO: i=0
+            t = times[i];
+            // t = 96;
             
             //print time
             std::cout << std::endl << "Main-Time: " << t << std::endl;
@@ -134,7 +136,7 @@ int main(int argc, char* argv[]) {
                     std::cout << "i" << std::endl; 
                     std::cout << std::endl;
 
-                    complex<double> energy_coefficient_amp = std::pow(amplitude, q);
+                    double energy_coefficient_amp = std::pow(amplitude, q);
 
                     if (target == 0 && q == 0){
                         total_amp = 1;
@@ -149,9 +151,14 @@ int main(int argc, char* argv[]) {
                         continue;
                     }
 
-                    // std::cout << "hi" << std::endl; 
-                    auto coefficients = all_coefficients[target][q];
-                    // std::cout << "hi" << std::endl; 
+                    // auto coefficients = all_coefficients[target][q];
+                    vector<vector<int>> permutations = ladder_permutations(start_state, MAX_STEP, target, q);//TODO:validate start_state
+                    vector<std::tuple<double, int, vector<int>>> all_coefficients_const_pulse;
+
+                     for (const auto& permutation : permutations) {
+                        auto coefficients = cal_coefficient_const_pulse(permutation, start_state);
+                        all_coefficients_const_pulse.push_back(coefficients);
+                     }
 
                     // std::cout << "Permutations:" << std::endl;
                     // for (const auto& combination : permutations) {
@@ -162,10 +169,9 @@ int main(int argc, char* argv[]) {
                     // }
                     
                     //there are no permutaions - skip
-                    if (coefficients.size() == 0) {
+                    if (permutations.size() == 0) {
                         continue;
                     }
-
                     
                     // // check if file for q_amp already exists
                     // std::string q_amp_filename = "./include/parms/dispersive/q_amp_recursive/dispersive_q_amp_qubit_" 
@@ -192,9 +198,8 @@ int main(int argc, char* argv[]) {
                     // Need to calculate q_amp
                     divdiff_init();
                     // std::cout << coefficients.size() << std::endl; 
-                    for (const auto& coefficient : coefficients) {
-                        
-                        q_amp += cal_divdiff(coefficient, t, q, qubit, chi, omega, target);
+                    for (const auto& coefficient : all_coefficients_const_pulse) {
+                        q_amp += cal_divdiff_const_amp(coefficient, t, q, qubit, chi, omega, target);
                     }
                     //clear divdiff
                     divdiff_clear_up();
@@ -206,10 +211,12 @@ int main(int argc, char* argv[]) {
                     // save_complex_to_file(q_amp, q_amp_filename);
                     
                     // print energy_coefficient_amp
-                    std::cout << "Energy coefficient: " << energy_coefficient_amp.real() << " + " << energy_coefficient_amp.imag() << "i" << std::endl;
+                    // std::cout << "Energy coefficient: " << energy_coefficient_amp.real() << " + " << energy_coefficient_amp.imag() << "i" << std::endl;
+                    std::cout << "Energy coefficient: " << energy_coefficient_amp << std::endl;
                     //print q_amp
                     std::cout << "Q: " << q << std::endl;
                     std::cout << "Q_amp: " << q_amp.real().get_double() << " + " << q_amp.imag().get_double() << "i" << std::endl;
+
 
                     q_amp *= energy_coefficient_amp; 
 
@@ -223,8 +230,26 @@ int main(int argc, char* argv[]) {
                     cout << std::endl;
                     
                     //add to total amp
+                    //print hi 
+                    std::cout << "HI" << std::endl;
                     total_amp += q_amp;
+                    
+                    std::cout << "HI23" << std::endl;
+                    
+                    // total_amp.real() = q_amp_real;
+                    // total_amp.imag() += q_amp_imag;
+                    
+                    // total_amp.real() += q_amp.real();
                     // total_amp.imag() += q_amp.imag();
+                    // std::cout << "HI" << std::endl;
+                    
+                    //print the Total amplitude
+                    std::cout <<  "Total amp: "; 
+                    total_amp.real().print();
+                    std::cout << "+ ";
+                    total_amp.imag().print();
+                    std::cout << "i" << std::endl; 
+                    std::cout << std::endl;
                 }
 
                 //print the Total amplitude
