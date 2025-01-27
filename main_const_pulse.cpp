@@ -15,12 +15,52 @@ using std::vector;
 using std::complex;
 
 #define  MAX_STEP 100
-#define  MAX_TARGET 8
+#define  MAX_TARGET 6
 #define MAX_Q 10
 
 
+//struct consisting of 2 ExExFloats
+struct complex_Ex{
+    ExExFloat real;
+    ExExFloat imag;
+};
 
-int main(int argc, char* argv[]) {
+complex_Ex complex_mult(complex_Ex a, complex_Ex b){
+    divdiff_init();
+    complex_Ex res;
+    //print res.real
+    ExExFloat temp1 = a.real * b.real;
+    ExExFloat temp2 = a.imag * b.imag;
+    //print temp
+    std::cout << "temp1: " << temp1.get_double() << std::endl;
+    std::cout << "temp2: " << temp2.get_double() << std::endl;
+    // ExExFloat temp5 = a.real + b.real;
+    // std::cout << "temp5: " << temp5.get_double() << std::endl;
+
+
+    res.real = temp1 - temp2;
+    //print res.real
+    std::cout << "res.real: " << res.real.get_double() << std::endl;
+    
+
+    ExExFloat temp3 = a.real * b.imag;
+    ExExFloat temp4 = a.imag * b.real;
+    //print temp
+    std::cout << "temp3: " << temp3.get_double() << std::endl;
+    std::cout << "temp4: " << temp4.get_double() << std::endl;
+
+    res.imag = temp3 + temp4;
+    //print res.imag
+    std::cout << "res.imag: " << res.imag.get_double() << std::endl;
+
+    divdiff_clear_up();
+
+    return res;
+}
+
+
+// int main(int argc, char* argv[]) {
+vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int q_max, double amplitude, int start_state){
     complex<double> i_num(0, 1);
     
     //original parameters
@@ -33,14 +73,14 @@ int main(int argc, char* argv[]) {
 
     //TODO: notice that amp is double of the value to put in antiSymSim
     
-    // initial values
-    double amplitude = 0.02;
-    int q_max = 12; 
+    // // initial values
+    // double amplitude = 0.02;
+    // int q_max = 12; 
     
-    if(argc > 1){
-        amplitude = std::stod(argv[1]);
-        q_max = std::stoi(argv[2]);
-    }
+    // if(argc > 1){
+    //     amplitude = std::stod(argv[1]);
+    //     q_max = std::stoi(argv[2]);
+    // }
 
     //print args
     std::cout << "Amplitude: " << amplitude << std::endl;
@@ -67,16 +107,16 @@ int main(int argc, char* argv[]) {
     }
 
 
-    //calculate the time evolution
-    double t;
+    // //calculate the time evolution
+    // double t;
 
-    // vector of all transition ampli tudes for all times: [time][target_state][amp]
+    // vector of all transition amplitudes for all times: [time][target_state][amp]
     vector<vector<vector<complex<ExExFloat>>>> all_transition_amplitudes(2);
     vector<vector<complex<double>>> all_transition_amplitudes_g;
     vector<vector<complex<double>>> all_transition_amplitudes_e;
     
     //define start state
-    int start_state = 0;
+    // int start_state = 0;
     int total_steps = 100;
 
     // Create a 3D vector to store the results
@@ -93,11 +133,11 @@ int main(int argc, char* argv[]) {
     // int qubit = 1;
     for (int qubit = 0; qubit <=1; qubit++){
 
-        //loop over all times
-        // for (int i = 0; i < times.size(); i++) { //TODO: i=0
-        for (int i = 0; i < 97; i++) { //TODO: i=0
-            t = times[i];
-            // t = 96;
+        // //loop over all times
+        // // for (int i = 0; i < times.size(); i++) { //TODO: i=0
+        // for (int i = 0; i < 97; i++) { //TODO: i=0
+        //     t = times[i];
+        //     // t = 96;
             
             //print time
             std::cout << std::endl << "Main-Time: " << t << std::endl;
@@ -106,7 +146,7 @@ int main(int argc, char* argv[]) {
             vector<complex<ExExFloat>> transition_amplitudes;
             
             //loop over all target steps
-            for (int target = 0; target <= MAX_TARGET; target++) {
+            for (int target = 0; target < MAX_TARGET; target++) {
                 complex<ExExFloat> total_amp;
                 total_amp *= 0;
                 // total_amp.imag() = 0;
@@ -300,9 +340,8 @@ int main(int argc, char* argv[]) {
             // all_transition_amplitudes.push_back(transition_amplitudes);
 
             std::cout << std::endl << std::endl;
-        
-        //end of time loop
-        }
+        // //end of time loop
+        // }
 
 
         // if (qubit == 0){
@@ -324,10 +363,106 @@ int main(int argc, char* argv[]) {
                 cout << std::endl;
             }
         }
+    }
+    return all_transition_amplitudes;
+}
 
-        // Assuming all_transition_amplitudes is a vector<vector<complex<double>>>
-        nlohmann::json j;
-        for (const auto& vec : all_transition_amplitudes[qubit]) {
+
+
+
+int main(int argc, char* argv[]) {
+    //get the parameters
+    // initial values
+    double amplitude = 0.02;
+    int q_max = 12; 
+    
+    if(argc > 1){
+        amplitude = std::stod(argv[1]);
+        q_max = std::stoi(argv[2]);
+    }
+    double mid_t = 96;
+    double final_t = 192;
+
+    //init final_state_ta to [2][1][8]
+    vector<vector<vector<complex<ExExFloat>>>> final_state_ta;
+    for (int qubit = 0; qubit < 2; qubit++){
+        vector<vector<complex<ExExFloat>>> qubit_state;
+        for (int i = 0; i < 1; i++){// times size is 1
+            vector<complex<ExExFloat>> state;
+            for (int j = 0; j < MAX_TARGET; j++){
+                complex<ExExFloat> c;
+                c *= 0;
+                state.push_back(c);
+            }
+            qubit_state.push_back(state);
+        }
+        final_state_ta.push_back(qubit_state);
+    }
+
+    std::cout << "Mid state!!!" << std::endl;
+    //run for time 96
+    vector<vector<vector<complex<ExExFloat>>>> mid_ta = solve_for_t(mid_t, 0, q_max, amplitude, 0);
+    //get state
+
+    // final_state_ta = mid_ta;//TODO: check how to init to 0
+
+    // run all states for time 192
+    for (int start_state = 0; start_state < MAX_TARGET; start_state++){
+        //print start state
+        std::cout << "Start state: " << start_state << std::endl;
+        std::cout << std::endl;
+
+        auto curr_state_ta = solve_for_t(final_t - mid_t, 0, q_max, (-1) * amplitude, start_state);//TODO: check t - 192/96/95?
+        //save to final state
+        for(int qubit = 0; qubit < 2; qubit++){
+            std::cout << "qubit: " << qubit << std::endl;
+
+            for (int j = 0; j < MAX_TARGET; j++){//curr_state_ta[qubit][0] refers to time 96
+                //print target
+                std::cout << "Target: " << j << std::endl;
+                std::cout << "starting " << start_state << std::endl;
+
+                //print mid_ta 
+                std::cout << "mid_ta:" << std::endl;
+                    mid_ta[qubit][0][start_state].real().print();
+                    std::cout << "+ ";
+                    mid_ta[qubit][0][start_state].imag().print();
+                    std::cout << "i" << std::endl;
+                    cout << std::endl;
+
+                //print curr_state_ta
+                std::cout << "curr_state_ta:" << std::endl;
+                    curr_state_ta[qubit][0][j].real().print();
+                    std::cout << "+ ";
+                    curr_state_ta[qubit][0][j].imag().print();
+                    std::cout << "i" << std::endl;
+                    cout << std::endl;
+
+                curr_state_ta[qubit][0][j] *= mid_ta[qubit][0][start_state];
+                
+                //print curr_state_ta
+                std::cout << "new curr_state_ta:" << std::endl;
+                    curr_state_ta[qubit][0][j].real().print();
+                    std::cout << "+ ";
+                    curr_state_ta[qubit][0][j].imag().print();
+                    std::cout << "i" << std::endl;
+                    cout << std::endl;
+                
+                final_state_ta[qubit][0][j] += curr_state_ta[qubit][0][j];
+                std::cout << "finished" << std::endl;
+            }
+        }
+    }
+
+    //save final state to a file
+    std::cout << "saving to file" << std::endl;
+    
+    // Assuming all_transition_amplitudes is a vector<vector<complex<double>>>
+    
+    nlohmann::json j;
+    for(int qubit = 0; qubit < 2; qubit++){
+        // for (const auto& vec : mid_ta[qubit]) {
+        for (const auto& vec : final_state_ta[qubit]) {
             nlohmann::json sub_j;
             for (const auto& c : vec) {
                 sub_j.push_back({{"real", c.real().get_double()}, {"imag", c.imag().get_double()}});
