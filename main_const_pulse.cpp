@@ -19,48 +19,11 @@ using std::complex;
 #define MAX_Q 10
 
 
-//struct consisting of 2 ExExFloats
-struct complex_Ex{
-    ExExFloat real;
-    ExExFloat imag;
-};
 
-complex_Ex complex_mult(complex_Ex a, complex_Ex b){
-    divdiff_init();
-    complex_Ex res;
-    //print res.real
-    ExExFloat temp1 = a.real * b.real;
-    ExExFloat temp2 = a.imag * b.imag;
-    //print temp
-    std::cout << "temp1: " << temp1.get_double() << std::endl;
-    std::cout << "temp2: " << temp2.get_double() << std::endl;
-    // ExExFloat temp5 = a.real + b.real;
-    // std::cout << "temp5: " << temp5.get_double() << std::endl;
-
-
-    res.real = temp1 - temp2;
-    //print res.real
-    std::cout << "res.real: " << res.real.get_double() << std::endl;
-    
-
-    ExExFloat temp3 = a.real * b.imag;
-    ExExFloat temp4 = a.imag * b.real;
-    //print temp
-    std::cout << "temp3: " << temp3.get_double() << std::endl;
-    std::cout << "temp4: " << temp4.get_double() << std::endl;
-
-    res.imag = temp3 + temp4;
-    //print res.imag
-    std::cout << "res.imag: " << res.imag.get_double() << std::endl;
-
-    divdiff_clear_up();
-
-    return res;
-}
 
 
 // int main(int argc, char* argv[]) {
-vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int q_max, double amplitude, int start_state){
+vector<vector<vector<complex_Ex>>> solve_for_t(double t, int qubit, int q_max, double amplitude, int start_state){
     complex<double> i_num(0, 1);
     
     //original parameters
@@ -71,7 +34,7 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
     // double detuning = chi *1e-2;
 
 
-    //TODO: notice that amp is double of the value to put in antiSymSim
+    //TODO: notice that amp is double of the value to put in antiSymSim for sin pulse
     
     // // initial values
     // double amplitude = 0.02;
@@ -100,7 +63,7 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
     std::cout << "tfinal: " << tfinal << std::endl;
     std::cout << "Omega: " << omega << std::endl;
     vector<double> times;
-    for (double t = timestep; t <= tfinal; t += timestep) {//TODO: check if t=1 is correct (t=0 gives 0 amplitude)
+    for (double t = timestep; t <= tfinal; t += timestep) {
         times.push_back(t);
         //print times
         // std::cout << "Time: " << t << std::endl;
@@ -111,7 +74,7 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
     // double t;
 
     // vector of all transition amplitudes for all times: [time][target_state][amp]
-    vector<vector<vector<complex<ExExFloat>>>> all_transition_amplitudes(2);
+    vector<vector<vector<complex_Ex>>> all_transition_amplitudes(2);
     vector<vector<complex<double>>> all_transition_amplitudes_g;
     vector<vector<complex<double>>> all_transition_amplitudes_e;
     
@@ -143,20 +106,21 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
             std::cout << std::endl << "Main-Time: " << t << std::endl;
 
             //vector of all transition amplitude for a given time
-            vector<complex<ExExFloat>> transition_amplitudes;
+            vector<complex_Ex> transition_amplitudes;
             
             //loop over all target steps
             for (int target = 0; target < MAX_TARGET; target++) {
-                complex<ExExFloat> total_amp;
-                total_amp *= 0;
+                complex_Ex total_amp;
+                total_amp.real = 0;
+                total_amp.imag = 0;
                 // total_amp.imag() = 0;
 
                 //print total_amp
                 // std::cout << "Total amplitude: " << total_amp << std::endl << std::endl;
-                std::cout <<  "First Total amp: "; 
-                total_amp.real().print();
+                std::cout <<  "init Total amp: "; 
+                total_amp.real.print();
                 std::cout << "+ ";
-                total_amp.imag().print();
+                total_amp.imag.print();
                 std::cout << "i" << std::endl; 
                 std::cout << std::endl;
 
@@ -167,24 +131,25 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
                     //print q
                     std::cout << "Q: " << q << std::endl;
 
-                    complex<ExExFloat> q_amp; //TODO: change to EXEXFLOAT
-                    q_amp *= 0;
-                    std::cout <<  "First q_amp: "; 
-                    total_amp.real().print();
+                    complex_Ex q_amp; 
+                    q_amp.real = 0;
+                    q_amp.imag = 0;
+                    std::cout <<  "init q_amp: "; 
+                    q_amp.real.print();
                     std::cout << "+ ";
-                    total_amp.imag().print();
+                    q_amp.imag.print();
                     std::cout << "i" << std::endl; 
                     std::cout << std::endl;
 
                     double energy_coefficient_amp = std::pow(amplitude, q);
 
                     if (target == 0 && q == 0){
-                        total_amp = 1;
-                        std::cout <<  "second Total amp: "; 
+                        total_amp.real = 1;
+                        std::cout <<  "Total amp target,q = 0: "; 
 
-                        total_amp.real().print();
+                        total_amp.real.print();
                         std::cout << "+ ";
-                        total_amp.imag().print();
+                        total_amp.imag.print();
                         std::cout << "i" << std::endl; 
                         std::cout << std::endl;
 
@@ -239,7 +204,9 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
                     divdiff_init();
                     // std::cout << coefficients.size() << std::endl; 
                     for (const auto& coefficient : all_coefficients_const_pulse) {
-                        q_amp += cal_divdiff_const_amp(coefficient, t, q, qubit, chi, omega, target);
+                        complex_Ex res = cal_divdiff_const_amp(coefficient, t, q, qubit, chi, omega, target);
+                        q_amp.real += res.real;
+                        q_amp.imag += res.imag;
                     }
                     //clear divdiff
                     divdiff_clear_up();
@@ -255,16 +222,17 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
                     std::cout << "Energy coefficient: " << energy_coefficient_amp << std::endl;
                     //print q_amp
                     std::cout << "Q: " << q << std::endl;
-                    std::cout << "Q_amp: " << q_amp.real().get_double() << " + " << q_amp.imag().get_double() << "i" << std::endl;
+                    std::cout << "Q_amp: " << q_amp.real.get_double() << " + " << q_amp.imag.get_double() << "i" << std::endl;
 
 
-                    q_amp *= energy_coefficient_amp; 
+                    q_amp.real *= energy_coefficient_amp; 
+                    q_amp.imag *= energy_coefficient_amp; 
 
                     // print the q amplitude
                     cout << q << " Original q_amp: " << endl;
-                    q_amp.real().print();
+                    q_amp.real.print();
                     cout << "+ ";
-                    q_amp.imag().print();
+                    q_amp.imag.print();
                     cout << "i" << endl;
 
                     cout << std::endl;
@@ -272,7 +240,8 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
                     //add to total amp
                     //print hi 
                     std::cout << "HI" << std::endl;
-                    total_amp += q_amp;
+                    total_amp.real += q_amp.real;
+                    total_amp.imag += q_amp.imag;
                     
                     std::cout << "HI23" << std::endl;
                     
@@ -285,9 +254,9 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
                     
                     //print the Total amplitude
                     std::cout <<  "Total amp: "; 
-                    total_amp.real().print();
+                    total_amp.real.print();
                     std::cout << "+ ";
-                    total_amp.imag().print();
+                    total_amp.imag.print();
                     std::cout << "i" << std::endl; 
                     std::cout << std::endl;
                 }
@@ -295,9 +264,9 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
                 //print the Total amplitude
                 // std::cout << "Total amplitude: " << total_amp << std::endl << std::endl;
                 std::cout <<  "Total amp: "; 
-                total_amp.real().print();
+                total_amp.real.print();
                 std::cout << "+ ";
-                total_amp.imag().print();
+                total_amp.imag.print();
                 std::cout << "i" << std::endl; 
                 std::cout << std::endl;
                 transition_amplitudes.push_back(total_amp);
@@ -306,11 +275,11 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
             // //print transition amplitudes
             std::cout << "Transition amplitudes: " << std::endl;
             int target_nums = 0;
-            for (const auto& amp : transition_amplitudes) {
+            for (auto& amp : transition_amplitudes) {
                 std::cout << target_nums << ": "; 
-                amp.real().print();
+                amp.real.print();
                 std::cout << "+ ";
-                amp.imag().print();
+                amp.imag.print();
                 std::cout << "i" << std::endl; 
                 std::cout << std::endl;
                 target_nums++;
@@ -323,12 +292,13 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
             double norm = 0;
             ExExFloat Ex_norm;
             Ex_norm = 0;
-            for (const auto& amp : transition_amplitudes) {
-                Ex_norm += amp.real() * amp.real() + amp.imag() * amp.imag();
+            for (auto& amp : transition_amplitudes) {
+                Ex_norm += amp.real * amp.real + amp.imag * amp.imag;
             }
             norm = sqrt(Ex_norm.get_double());
             for (auto& amp : transition_amplitudes) {
-                amp = amp / norm;
+                amp.real = amp.real / norm;
+                amp.imag = amp.imag / norm;
             }
             
             all_transition_amplitudes[qubit].push_back(transition_amplitudes);
@@ -356,9 +326,9 @@ vector<vector<vector<complex<ExExFloat>>>> solve_for_t(double t, int qubit, int 
             std::cout << "Time: " << times[i] << std::endl;
             for (int j = 0; j < all_transition_amplitudes[qubit][i].size(); j++) {
                 std::cout << "Target: " << j << " Amplitude: ";
-                all_transition_amplitudes[qubit][i][j].real().print();
+                all_transition_amplitudes[qubit][i][j].real.print();
                 std::cout << "+ ";
-                all_transition_amplitudes[qubit][i][j].imag().print();
+                all_transition_amplitudes[qubit][i][j].imag.print();
                 std::cout << "i" << std::endl;
                 cout << std::endl;
             }
@@ -384,14 +354,15 @@ int main(int argc, char* argv[]) {
     double final_t = 192;
 
     //init final_state_ta to [2][1][8]
-    vector<vector<vector<complex<ExExFloat>>>> final_state_ta;
+    vector<vector<vector<complex_Ex>>> final_state_ta;
     for (int qubit = 0; qubit < 2; qubit++){
-        vector<vector<complex<ExExFloat>>> qubit_state;
+        vector<vector<complex_Ex>> qubit_state;
         for (int i = 0; i < 1; i++){// times size is 1
-            vector<complex<ExExFloat>> state;
+            vector<complex_Ex> state;
             for (int j = 0; j < MAX_TARGET; j++){
-                complex<ExExFloat> c;
-                c *= 0;
+                complex_Ex c;
+                c.real = 0;
+                c.imag = 0;
                 state.push_back(c);
             }
             qubit_state.push_back(state);
@@ -401,7 +372,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Mid state!!!" << std::endl;
     //run for time 96
-    vector<vector<vector<complex<ExExFloat>>>> mid_ta = solve_for_t(mid_t, 0, q_max, amplitude, 0);
+    vector<vector<vector<complex_Ex>>> mid_ta = solve_for_t(mid_t, 0, q_max, amplitude, 0);
     //get state
 
     // final_state_ta = mid_ta;//TODO: check how to init to 0
@@ -411,8 +382,10 @@ int main(int argc, char* argv[]) {
         //print start state
         std::cout << "Start state: " << start_state << std::endl;
         std::cout << std::endl;
+            
+        vector<vector<vector<complex_Ex>>> curr_state_ta;
 
-        auto curr_state_ta = solve_for_t(final_t - mid_t, 0, q_max, (-1) * amplitude, start_state);//TODO: check t - 192/96/95?
+        curr_state_ta = solve_for_t(final_t - mid_t, 0, q_max, (-1) * amplitude, start_state);//TODO: check t - 192/96/95?
         //save to final state
         for(int qubit = 0; qubit < 2; qubit++){
             std::cout << "qubit: " << qubit << std::endl;
@@ -424,36 +397,51 @@ int main(int argc, char* argv[]) {
 
                 //print mid_ta 
                 std::cout << "mid_ta:" << std::endl;
-                    mid_ta[qubit][0][start_state].real().print();
+                    mid_ta[qubit][0][start_state].real.print();
                     std::cout << "+ ";
-                    mid_ta[qubit][0][start_state].imag().print();
+                    mid_ta[qubit][0][start_state].imag.print();
                     std::cout << "i" << std::endl;
                     cout << std::endl;
 
                 //print curr_state_ta
                 std::cout << "curr_state_ta:" << std::endl;
-                    curr_state_ta[qubit][0][j].real().print();
+                    curr_state_ta[qubit][0][j].real.print();
                     std::cout << "+ ";
-                    curr_state_ta[qubit][0][j].imag().print();
+                    curr_state_ta[qubit][0][j].imag.print();
                     std::cout << "i" << std::endl;
                     cout << std::endl;
 
-                curr_state_ta[qubit][0][j] *= mid_ta[qubit][0][start_state];
+                curr_state_ta[qubit][0][j] = complex_mult(curr_state_ta[qubit][0][j], mid_ta[qubit][0][start_state]);
                 
                 //print curr_state_ta
                 std::cout << "new curr_state_ta:" << std::endl;
-                    curr_state_ta[qubit][0][j].real().print();
+                    curr_state_ta[qubit][0][j].real.print();
                     std::cout << "+ ";
-                    curr_state_ta[qubit][0][j].imag().print();
+                    curr_state_ta[qubit][0][j].imag.print();
                     std::cout << "i" << std::endl;
                     cout << std::endl;
                 
-                final_state_ta[qubit][0][j] += curr_state_ta[qubit][0][j];
+                final_state_ta[qubit][0][j].real += curr_state_ta[qubit][0][j].real;
+                final_state_ta[qubit][0][j].imag += curr_state_ta[qubit][0][j].imag;
                 std::cout << "finished" << std::endl;
             }
         }
     }
 
+    //print final state
+    std::cout << "Final state!!!" << std::endl;
+    for(int qubit = 0; qubit < 2; qubit++){
+        std::cout << "qubit: " << qubit << std::endl;
+        for (int j = 0; j < MAX_TARGET; j++){
+            std::cout << "Target: " << j << std::endl;
+            final_state_ta[qubit][0][j].real.print();
+            std::cout << "+ ";
+            final_state_ta[qubit][0][j].imag.print();
+            std::cout << "i" << std::endl;
+            cout << std::endl;
+        }
+    }
+    
     //save final state to a file
     std::cout << "saving to file" << std::endl;
     
@@ -461,11 +449,11 @@ int main(int argc, char* argv[]) {
     
     nlohmann::json j;
     for(int qubit = 0; qubit < 2; qubit++){
-        // for (const auto& vec : mid_ta[qubit]) {
-        for (const auto& vec : final_state_ta[qubit]) {
+        // for (auto& vec : mid_ta[qubit]) {
+        for (auto& vec : final_state_ta[qubit]) {
             nlohmann::json sub_j;
-            for (const auto& c : vec) {
-                sub_j.push_back({{"real", c.real().get_double()}, {"imag", c.imag().get_double()}});
+            for (auto& c : vec) {
+                sub_j.push_back({{"real", c.real.get_double()}, {"imag", c.imag.get_double()}});
             }
             j.push_back(sub_j);
         }
