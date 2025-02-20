@@ -12,6 +12,43 @@ using std::complex;
 using std::cout;
 using std::endl;
 
+//struct consisting of 2 ExExFloats
+struct complex_Ex{
+    ExExFloat real;
+    ExExFloat imag;
+};
+
+complex_Ex complex_mult(complex_Ex a, complex_Ex b){
+    divdiff_init();
+    complex_Ex res;
+    //print res.real
+    ExExFloat temp1 = a.real * b.real;
+    ExExFloat temp2 = a.imag * b.imag;
+    // //print temp
+    // std::cout << "temp1: " << temp1.get_double() << std::endl;
+    // std::cout << "temp2: " << temp2.get_double() << std::endl;
+
+
+    res.real = temp1 - temp2;
+    // //print res.real
+    // std::cout << "res.real: " << res.real.get_double() << std::endl;
+    
+
+    ExExFloat temp3 = a.real * b.imag;
+    ExExFloat temp4 = a.imag * b.real;
+    // //print temp
+    // std::cout << "temp3: " << temp3.get_double() << std::endl;
+    // std::cout << "temp4: " << temp4.get_double() << std::endl;
+
+    res.imag = temp3 + temp4;
+    // //print res.imag
+    // std::cout << "res.imag: " << res.imag.get_double() << std::endl;
+
+    divdiff_clear_up();
+
+    return res;
+}
+
 
 double factorial(unsigned int n) {
     if (n == 0)
@@ -455,8 +492,8 @@ complex<ExExFloat> cal_divdiff(const std::tuple<std::vector<DivdiffElement>, dou
         
 }
 
-complex<ExExFloat> cal_divdiff_const_amp(const std::tuple<double, int, std::vector<int>> &coefficient,
-                             double t, int q, int qubit, double chi, double omega, int target_step) {
+complex_Ex cal_divdiff_const_amp(const std::tuple<double, int, std::vector<int>> &coefficient,
+                             double t, int q, int qubit, double chi) {
     auto energy_coefficient = std::get<0>(coefficient);
     auto final_state = std::get<1>(coefficient);
     auto states = std::get<2>(coefficient);
@@ -468,8 +505,6 @@ complex<ExExFloat> cal_divdiff_const_amp(const std::tuple<double, int, std::vect
 
     divdiffcomplex d(14,500);// max step is 14)
 
-    complex<ExExFloat> sum_final_elements;
-    sum_final_elements = 0;
 
     //print divdiff size
     int num_elem = 0;
@@ -478,7 +513,8 @@ complex<ExExFloat> cal_divdiff_const_amp(const std::tuple<double, int, std::vect
     for(int i=0; i < states.size(); i++){
         const auto& state_n = states[i];
         complex<double> n;
-        n = (-j * t * (state_n * chi * (qubit - 1)));
+        // n = (-j * t * (state_n * chi * (qubit - 1)));
+        n = (-j * t * (state_n * chi * (qubit)));
         
         d.AddElement(n);
     }
@@ -486,8 +522,11 @@ complex<ExExFloat> cal_divdiff_const_amp(const std::tuple<double, int, std::vect
     complex<ExExFloat> final_element = (z_n * cal_neg_i_pow(q) * pow(t, q)) /factorial(q);
 
     //TODO: remove d from memory
+    complex_Ex res;
+    res.real = final_element.real().get_double() * energy_coefficient;
+    res.imag = final_element.imag().get_double() * energy_coefficient;
 
-    return final_element * energy_coefficient;
+    return res;
 }
 
 

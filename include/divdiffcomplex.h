@@ -29,6 +29,14 @@ private:
 public:
 	ExExFloat(){ mantissa = 0.5; exponent = 1;}
 	ExExFloat(double val){ mantissa = 0.5*val; exponent = 1; normalize();}
+	// Getter functions
+    double getMantissa() const { return mantissa; }
+    int getExponent() const { return exponent; }
+
+    // Setter functions (if needed)
+    void setMantissa(double m) { mantissa = m; }
+    void setExponent(int e) { exponent = e; }
+	
 	void normalize(){ int tmp; mantissa = frexp(mantissa,&tmp); exponent += tmp;}
 	void init_expmu(double mu){ double e = mu*1.4426950408889634; exponent = ceil(e); mantissa = pow(2.,e - ceil(e)); }
 	void print(){

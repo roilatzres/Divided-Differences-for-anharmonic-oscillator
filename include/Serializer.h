@@ -6,10 +6,171 @@
 #include <functional>
 #include <sstream>
 #include <cmath>
+#include <cstring>
 #include "permutation.h"
 
 using std::vector;
 using std::complex;
+
+void save_binary_perm(const std::vector<std::vector<int>>& data, std::string& filename) {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for writing!" << std::endl;
+        return;
+    }
+
+    size_t rows = data.size();
+    size_t cols = (rows > 0) ? data[0].size() : 0;
+
+    file.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
+    file.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
+
+    for (const auto& row : data) {
+        if (!row.empty()) {  // Ensure valid data pointer
+            file.write(reinterpret_cast<const char*>(row.data()), row.size() * sizeof(int));
+        }
+    }
+
+    file.close();
+}
+
+vector<vector<int>> load_binary_perm(std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for reading!" << std::endl;
+        return {};
+    }
+
+    size_t rows, cols;
+    file.read(reinterpret_cast<char*>(&rows), sizeof(rows));
+    file.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+
+    vector<vector<int>> data(rows, vector<int>(cols));
+
+    for (auto& row : data) {
+        if (cols > 0) {  // Ensure valid memory
+            file.read(reinterpret_cast<char*>(row.data()), cols * sizeof(int));
+        }
+    }
+
+    file.close();
+    return data;
+}
+
+
+void save_binary_coef(const std::vector<std::tuple<double, int, std::vector<int>>>& data, const std::string& filename) {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for writing: " << filename << std::endl;
+        return;
+    }
+
+    size_t num_entries = data.size();
+    file.write(reinterpret_cast<const char*>(&num_entries), sizeof(num_entries));
+
+    std::vector<char> buffer;
+    buffer.reserve(num_entries * (sizeof(double) + sizeof(int) + sizeof(size_t))); // Pre-allocate memory
+
+    for (const auto& entry : data) {
+        double val;
+        int num;
+        std::vector<int> vec;
+        std::tie(val, num, vec) = entry;
+
+        buffer.insert(buffer.end(), reinterpret_cast<const char*>(&val), reinterpret_cast<const char*>(&val) + sizeof(val));
+        buffer.insert(buffer.end(), reinterpret_cast<const char*>(&num), reinterpret_cast<const char*>(&num) + sizeof(num));
+
+        size_t vec_size = vec.size();
+        buffer.insert(buffer.end(), reinterpret_cast<const char*>(&vec_size), reinterpret_cast<const char*>(&vec_size) + sizeof(vec_size));
+
+        if (!vec.empty()) {
+            buffer.insert(buffer.end(), reinterpret_cast<const char*>(vec.data()), reinterpret_cast<const char*>(vec.data()) + vec_size * sizeof(int));
+        }
+    }
+
+    file.write(buffer.data(), buffer.size()); // Write all at once
+    file.close();
+}
+
+std::vector<std::tuple<double, int, std::vector<int>>> load_binary_coef(const std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for reading: " << filename << std::endl;
+        return {};
+    }
+
+    size_t num_entries;
+    file.read(reinterpret_cast<char*>(&num_entries), sizeof(num_entries));
+
+    std::vector<char> buffer(std::istreambuf_iterator<char>(file), {}); // Load file into memory
+    file.close();
+
+    std::vector<std::tuple<double, int, std::vector<int>>> data;
+    data.reserve(num_entries);
+
+    const char* ptr = buffer.data();
+    const char* end = buffer.data() + buffer.size();
+
+    for (size_t i = 0; i < num_entries; ++i) {
+        if (ptr + sizeof(double) + sizeof(int) + sizeof(size_t) > end) break;
+
+        double val = *reinterpret_cast<const double*>(ptr);
+        ptr += sizeof(double);
+
+        int num = *reinterpret_cast<const int*>(ptr);
+        ptr += sizeof(int);
+
+        size_t vec_size = *reinterpret_cast<const size_t*>(ptr);
+        ptr += sizeof(size_t);
+
+        if (ptr + vec_size * sizeof(int) > end) break;
+
+        std::vector<int> vec(vec_size);
+        std::memcpy(vec.data(), ptr, vec_size * sizeof(int));
+        ptr += vec_size * sizeof(int);
+
+        data.emplace_back(val, num, std::move(vec));
+    }
+
+    return data;
+}
+
+void save_binary_complexEx(complex_Ex& data, const std::string& filename) {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for writing: " << filename << std::endl;
+        return;
+    }
+
+    double real_val = data.real.get_double();
+    double imag_val = data.imag.get_double();
+
+    file.write(reinterpret_cast<const char*>(&real_val), sizeof(double));
+    file.write(reinterpret_cast<const char*>(&imag_val), sizeof(double));
+
+    file.close();
+}
+
+complex_Ex load_binary_complexEx(const std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for reading: " << filename << std::endl;
+        return {};
+    }
+
+    double real_val, imag_val;
+    file.read(reinterpret_cast<char*>(&real_val), sizeof(double));
+    file.read(reinterpret_cast<char*>(&imag_val), sizeof(double));
+
+    complex_Ex result;
+    result.real = ExExFloat(real_val);
+    result.imag = ExExFloat(imag_val);
+
+    file.close();
+    return result;
+}
+
+
 
 
 // // Function to save permutations and coefficients to a file
@@ -260,6 +421,7 @@ vector<vector<int>> load_permutations(const std::string& filename) {
 
     return permutations;
 }
+
 
 // void save_coefficients(const std::tuple<vector<DivdiffElement>, double, int, vector<int>>& coefficients, const std::string& filename) {
 //     std::ofstream file(filename, std::ios::binary);
