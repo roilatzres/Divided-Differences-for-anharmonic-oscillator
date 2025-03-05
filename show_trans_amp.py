@@ -38,18 +38,24 @@ amp_json = [ 'mid_amplitudes_g_chg_amp-0.002000_q10.json',
             '4_base_amplitudes_g_chg_amp-0.002000_q10.json',
             '5_base_amplitudes_g_chg_amp-0.002000_q10.json',
             'amplitudes_g_chg_amp-0.002000_q10.json' ]
-amp_json = [ 'mid_amplitudes_g_chg_amp0.002000_q10.json', 
-            '0_base_amplitudes_g_chg_amp0.002000_q10.json',
-            '1_base_amplitudes_g_chg_amp0.002000_q10.json',
-            '2_base_amplitudes_g_chg_amp0.002000_q10.json',
-            '3_base_amplitudes_g_chg_amp0.002000_q10.json',
-            '4_base_amplitudes_g_chg_amp0.002000_q10.json',
-            '5_base_amplitudes_g_chg_amp0.002000_q10.json',
+amp_json = [ 'mid_amplitudes_e_chg_amp0.002000_q10.json', 
+            'amplitudes_e_chg_amp0.002000_q10.json' ,
+            'mid_amplitudes_e_chg_amp0.002000_q10.json' ,
             'amplitudes_g_chg_amp0.002000_q10.json' ]
-amp_json = [ 'mid_amplitudes_e_chg_amp0.020000_q18.json', 
-            'amplitudes_e_chg_amp0.020000_q18.json' ,
-            'amplitudes_g_chg_amp0.020000_q18.json' ,
-            'amplitudes_g_chg_amp0.020000_q18.json' ]
+# amp_json = [ 'mid_amplitudes_e_chg_amp0.012000_q18.json', 
+#             'amplitudes_e_chg_amp0.012000_q18.json' ,
+#             'mid_amplitudes_g_chg_amp0.012000_q18.json' ,
+#             'amplitudes_g_chg_amp0.012000_q18.json' ]
+amp_json = [ 'amplitudes_g_chg_pulse0amp0.002000_q10.json', 
+            'amplitudes_g_chg_pulse1amp0.002000_q10.json',
+            'amplitudes_g_chg_pulse2amp0.002000_q10.json',
+            'amplitudes_g_chg_pulse3amp0.002000_q10.json',
+            'amplitudes_e_chg_pulse0amp0.002000_q10.json',
+            'amplitudes_e_chg_pulse1amp0.002000_q10.json',
+            'amplitudes_e_chg_pulse2amp0.002000_q10.json',
+            'amplitudes_e_chg_pulse3amp0.002000_q10.json']
+
+
 
 ########################################################################
 # all_amp_g_json = []
