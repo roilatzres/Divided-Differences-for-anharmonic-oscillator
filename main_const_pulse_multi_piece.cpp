@@ -284,7 +284,8 @@ int main(int argc, char* argv[]) {
     double final_t = 192;
 
     //init final_state_ta to [2][1][8]
-
+    
+    //init all_state_ta 
     vector<vector<vector<vector<complex_Ex>>>> all_state_ta;
     for(int state=0; state < num_pulses*2; state++){
         vector<vector<vector<complex_Ex>>> final_state_ta;
@@ -327,7 +328,7 @@ int main(int argc, char* argv[]) {
     
             auto curr_state = vector<vector<vector<complex_Ex>>> {};
     
-            curr_state = solve_for_t(sample_t, q_max, amplitudes[curr_mul], start_state, max_target);//TODO: check t - 192/96/95?
+            curr_state = solve_for_t(sample_t, q_max, amplitudes[curr_mul], start_state, max_target);
             
             //insert curr state into curr_state_ta
             curr_state_ta.push_back(curr_state);
