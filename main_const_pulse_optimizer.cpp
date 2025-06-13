@@ -5,11 +5,16 @@
 #include <complex>
 #include "include/divdiffcomplex.h"
 #include "include/permutation.h"
+// #include "include/optimizer_helper.h"
 #include "include/Serializer.h"
 #include <fstream>
 #include "include/json-develop/single_include/nlohmann/json.hpp"
 #include <string>
 // #include "main_orig.h"
+// #include <dlib/matrix.h>
+#include "include/dlib/dlib/optimization.h"
+#include "include/dlib/dlib/matrix.h"
+
 
 using std::vector;
 using std::complex;
@@ -29,6 +34,162 @@ void print_complex_Ex(complex_Ex a){
     std::cout << std::endl;
 }
 
+
+vector<vector<vector<vector<complex_Ex>>>> coef_matrices(double time, int q_max, int max_target, int qubit){
+    complex<double> i_num(0, 1);
+    
+    //original parameters
+    double multiplier = 4;
+    float sigma = 48;
+    float timestep = 1;
+    double chi = -279e-6 * 2 * M_PI; 
+    // double detuning = chi *1e-2;
+
+
+    //TODO: notice that amp is double of the value to put in antiSymSim for sin pulse
+    
+    //print args
+    std::cout << "q_max: " << q_max << std::endl;
+    std::cout << "max target: " << max_target << std::endl;
+
+    // //print vars
+    // std::cout << "Multiplier: " << multiplier << std::endl;
+    // std::cout << "Sigma: " << sigma << std::endl;
+    // std::cout << "Timestep: " << timestep << std::endl;
+    // std::cout << "Chi: " << chi << std::endl;
+    // // std::cout << "Detuning: " << detuning << std::endl;
+
+
+    double tfinal = multiplier * sigma;
+    double omega = (2 * M_PI) / tfinal;
+
+    std::cout << "tfinal: " << tfinal << std::endl;
+    std::cout << "Omega: " << omega << std::endl;
+    vector<double> times;
+    for (double t = timestep; t <= tfinal; t += timestep) {
+        times.push_back(t);
+        //print times
+        // std::cout << "Time: " << t << std::endl;
+    }
+
+    // //calculate the time evolution
+    double t;
+
+    // all coef matrix - [time][power of q][start_state][target_state] 
+    vector<vector<vector<vector<complex_Ex>>>> all_coefs = vector<vector<vector<vector<complex_Ex>>>>(time, vector<vector<vector<complex_Ex>>>(q_max + 1, vector<vector<complex_Ex>>(max_target, vector<complex_Ex>(max_target)))); 
+
+
+    for (int i = 0; i < time; i++) {
+            t = times[i];
+        //     // t = 96;
+            
+        //print time
+        std::cout << std::endl << "Main-Time: " << t << std::endl;
+
+        
+        //loop over all target steps
+        for(int q = 0; q <= q_max; q++){
+            cout << "Q: " << q << std::endl;
+            
+            for(int start_state = 0; start_state < max_target; start_state++){
+                cout << "Start state: " << start_state << std::endl;
+                
+                auto transition_amplitudes_start_state = vector<complex_Ex> {};
+                for (int target = 0; target < max_target; target++) {
+                    //print target
+                    std::cout << "Target: " << target << std::endl;
+                    
+                    complex_Ex q_coef;
+                    
+                    // easist case - if target is the same as start state and q is 0
+                    if (target == start_state && q == 0){
+                        // print case 1
+                        std::cout << "Case 1: target is the same as start state and q is 0" << std::endl;
+                        complex<double> exponent = std::exp(-i_num * t * (start_state * chi * qubit));
+                        q_coef.real = exponent.real();
+                        q_coef.imag = exponent.imag();
+                        all_coefs[i][q][start_state][target] = q_coef;
+                        cout << "q_coef" << std::endl;
+                        print_complex_Ex(q_coef);
+                        continue;
+                    }
+
+                    // second case - we already have the coefficient calculated
+                    std::string coeff_filename = "./include/q_amp/optimizer/dispersive_coeff_start_state_" + std::to_string(start_state) 
+                        + "_qubit_" + std::to_string(qubit) + "_t_" + std::to_string((int)t) + "_target_" + std::to_string(target) + 
+                        "_q" + std::to_string(q) + "_time" + std::to_string(t) + ".bin";
+                    std::ifstream infile_q_amp(coeff_filename);
+
+                    if (infile_q_amp) {
+                        std::cout << "Case 2: coefficient already exists" << std::endl;
+                        q_coef = load_binary_complexEx(coeff_filename);
+                        all_coefs[i][q][start_state][target] = q_coef;
+                        print_complex_Ex(q_coef);
+                        continue;
+                    }
+
+                    // third case - we need to calculate the coefficient
+                    std::cout << "Case 3: coefficient needs to be calculated" << std::endl;
+                    auto permutations = vector<vector<int>> {};
+                    std::string perm_filename = "./include/permutations/dispersive_const_perms/start_state" +
+                    std::to_string(start_state) + "_target_" + std::to_string(target) + "_q" + std::to_string(q) + ".txt";
+                    
+                    std::ifstream infile_perm(perm_filename);
+                    if (infile_perm) {
+                        permutations = load_binary_perm(perm_filename);
+                    } else {
+                        permutations = ladder_permutations(start_state, MAX_STEP, target, q);
+                        if (permutations.empty()) {
+                            std::cout << "No permutations found for start state " << start_state << " and target " << target << " with q = " << q << std::endl;
+                            q_coef.real = 0;
+                            q_coef.imag = 0;
+                            all_coefs[i][q][start_state][target] = q_coef;
+                            continue;
+                        } else {
+                            save_binary_perm(permutations, perm_filename);
+                        }
+                    }
+                    
+                    vector<std::tuple<double, int, vector<int>>> all_coefficients_const_pulse;
+                    std::string all_coef_filename = "./include/parms/dispersive_const/start_state" +
+                    std::to_string(start_state) + "_target_" + std::to_string(target) + "_q" + std::to_string(q) + ".txt";
+                
+                    std::ifstream infile_coef(all_coef_filename);
+                    if (infile_coef) {
+                        all_coefficients_const_pulse = load_binary_coef(all_coef_filename);
+                    } else {
+                        for (const auto& permutation : permutations) {
+                            auto coefficients = cal_coefficient_const_pulse(permutation, start_state);
+                            all_coefficients_const_pulse.push_back(coefficients);
+                        }
+                        save_binary_coef(all_coefficients_const_pulse, all_coef_filename);
+                    }
+
+                        
+                    divdiff_init();
+                    for (const auto& coefficient : all_coefficients_const_pulse) {
+                        complex_Ex res = cal_divdiff_const_amp(coefficient, t, q, qubit, chi);
+                        q_coef.real += res.real;
+                        q_coef.imag += res.imag;
+                    }
+                    divdiff_clear_up();
+                    
+                    save_binary_complexEx(q_coef, coeff_filename);
+                    
+                    all_coefs[i][q][start_state][target] = q_coef;
+                    cout << "q_coef" << std::endl;
+                    print_complex_Ex(q_coef);
+
+                }
+            }
+
+        }
+        
+    //end of time loop
+    }
+
+    return all_coefs;
+}
 
 // int main(int argc, char* argv[]) {
 vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double amplitude, int start_state, int max_target, int qubit){
@@ -91,8 +252,8 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
     // for (int qubit = 0; qubit < 2; qubit++){//TODO: qubit needs to be passed as an argument
 
         // //loop over all times
-        // // for (int i = 0; i < times.size(); i++) { //TODO: i=0
-        for (int i = 0; i < time; i++) { //TODO: i=0
+        // // for (int i = 0; i < times.size(); i++) { 
+        for (int i = 0; i < time; i++) {
             t = times[i];
         //     // t = 96;
             
@@ -291,6 +452,8 @@ double cal_error(vector<vector<vector<complex_Ex>>>& curr_state, vector<vector<c
 
 
 
+
+
 int main(int argc, char* argv[]) {
     //get the parameters
     // initial values
@@ -334,36 +497,24 @@ int main(int argc, char* argv[]) {
     // double mid_t = 96;
     //init final_state_ta to [2][1][8]
     
-    
-    //init all_state_ta 
-    vector<vector<vector<vector<complex_Ex>>>> all_state_ta;
-    vector<vector<vector<vector<complex_Ex>>>> new_all_state_ta;    
-    for(int pulse=0; pulse < num_pulses*2; pulse++){
-        vector<vector<vector<complex_Ex>>> final_state_ta;
-        // for (int qubit = 0; qubit < 2; qubit++){//TODO: qubit is not used, so we can remove it
-            vector<vector<complex_Ex>> qubit_state;
-            for (int i = 0; i < sample_t; i++){// times size is 1
-                vector<complex_Ex> state;
-                for (int j = 0; j < max_target; j++){
-                    complex_Ex c;
-                    c.real = 0;
-                    c.imag = 0;
-                    state.push_back(c);
-                }
-                qubit_state.push_back(state);
-            }
-            final_state_ta.push_back(qubit_state);
-        // } // end of qubit loop
-        all_state_ta.push_back(final_state_ta);
-        new_all_state_ta.push_back(final_state_ta);
+
+    // create start state
+    vector<complex_Ex> start_state_orig = vector<complex_Ex>(max_target);
+    for (int i = 0; i < max_target; i++) {
+        complex_Ex c;
+        if(i == 0){
+            c.real = 1; // set the first state to 1
+            c.imag = 0;
+        } else {
+            c.real = 0; // set the rest to 0
+            c.imag = 0;
+        }
+        start_state_orig[i] = c;
     }
-
-    vector<double> amplitudes_list(amplitudes.size());// to store the amplitudes that give the minimum distance
-    double min_error = 1; // initialize to a large value
-
+    
     
     //load final_state_ta from file
-    // std::string final_state_filename = "amplitudes_e_chg_amp0.002000_q10.json"; 
+    std::string final_state_filename = "amplitudes_e_chg_amp0.002000_q10.json"; 
     std::ifstream final_state_file(final_state_filename);
     vector<vector<complex_Ex>> final_state_ta;
     if (final_state_file.is_open()) {
@@ -384,204 +535,308 @@ int main(int argc, char* argv[]) {
         return 1; // Exit if the file cannot be opened
     }
 
-    // //print final_state_ta
-    // std::cout << "Final state from file: " << std::endl;
-    // for (int i = 0; i < final_state_ta.size(); i++) {
-    //     std::cout << "Target: " << i << std::endl;
-    //     for (const auto& c : final_state_ta[i]) {
-    //         print_complex_Ex(c);
+    // cal coef_matrices
+    std::cout << "Calculating coefficient matrices..." << std::endl;
+    vector<vector<vector<vector<complex_Ex>>>> all_coefs = coef_matrices(sample_t, q_max, max_target, qubit);
+    std::cout << "Coefficient matrices calculated." << std::endl;
+    // save all_coefs with values to json file
+    std::string all_coefs_filename = "all_coefs.json";
+    nlohmann::json j_all_coefs;
+    for (auto& time_vec : all_coefs) {
+        nlohmann::json j_time;
+        for (auto& q_vec : time_vec) {
+            nlohmann::json j_q;
+            for (auto& start_state_vec : q_vec) {
+                nlohmann::json j_start_state;
+                for (auto& target_state : start_state_vec) {
+                    j_start_state.push_back({{"real", target_state.real.get_double()}, {"imag", target_state.imag.get_double()}});
+                }
+                j_q.push_back(j_start_state);
+            }
+            j_time.push_back(j_q);
+        }
+        j_all_coefs.push_back(j_time);
+    }
+    std::ofstream out_all_coefs(all_coefs_filename);
+    if (out_all_coefs.is_open()) {
+        out_all_coefs << j_all_coefs.dump(4); // Pretty print with an indent of 4 spaces
+        out_all_coefs.close();
+        std::cout << "Coefficient matrices saved to " << all_coefs_filename << std::endl;
+    } else {
+        std::cerr << "Error opening file for saving coefficient matrices: " << all_coefs_filename << std::endl;
+        return 1; // Exit if the file cannot be opened
+    }
+    //print all_coefs 
+    std::cout << "All coefficients: " << std::endl;
+    for ( auto& time_vec : all_coefs) {
+        std::cout << "Time step: " << &time_vec - &all_coefs[0] << std::endl; // Print the index of the time step
+        for ( auto& q_vec : time_vec) {
+            cout << endl;
+            std::cout << "Q: " << &q_vec - &time_vec[0] << std::endl; // Print the index of q
+            for ( auto& start_state_vec : q_vec) {
+                std::cout << "Start state: " << &start_state_vec - &q_vec[0] << std::endl; // Print the index of start state
+                for ( auto& target_state : start_state_vec) {
+                    std::cout << "Target state: " << &target_state - &start_state_vec[0] << std::endl; // Print the index of target state
+                    std::cout << "Real: " << target_state.real.get_double() << ", Imag: " << target_state.imag.get_double() << std::endl;
+                    cout << endl;
+                }
+            }
+        }
+    }
+    std::cout << "All coefficients saved to " << all_coefs_filename << std::endl;
+    
+     // === Run optimization ===
+    Objective obj(all_coefs[all_coefs.size() - 1], start_state_orig, final_state_ta[final_state_ta.size() - 1]);
+    
+    dlib::matrix<double, 0, 1> x0(num_pulses*2); x0 = 0;
+    // //set x0 to 0.002 for the first num_pulses and -0.002 for the rest
+    // for (int i = 0; i < num_pulses; i++) {
+    //     x0(i) = orig_amplitude;
+    // }
+
+
+
+    auto result = find_min_using_approximate_derivatives(
+        dlib::bfgs_search_strategy(),
+        dlib::objective_delta_stop_strategy(1e-8),
+        obj, x0, -1);
+
+    cout << "Optimal x values:\n" << result << endl;
+    cout << "Minimum cost: " << obj(x0) << endl;
+    cout << "Fidelity: " << 1.0 - obj(x0) << endl;
+    cout << "x0: " << x0 << endl;
+    
+
+
+
+    // //init all_state_ta 
+    // vector<vector<vector<vector<complex_Ex>>>> all_state_ta;
+    // vector<vector<vector<vector<complex_Ex>>>> new_all_state_ta;    
+    // for(int pulse=0; pulse < num_pulses*2; pulse++){
+    //     vector<vector<vector<complex_Ex>>> final_state_ta;
+    //     // for (int qubit = 0; qubit < 2; qubit++){//TODO: qubit is not used, so we can remove it
+    //         vector<vector<complex_Ex>> qubit_state;
+    //         for (int i = 0; i < sample_t; i++){// times size is 1
+    //             vector<complex_Ex> state;
+    //             for (int j = 0; j < max_target; j++){
+    //                 complex_Ex c;
+    //                 c.real = 0;
+    //                 c.imag = 0;
+    //                 state.push_back(c);
+    //             }
+    //             qubit_state.push_back(state);
+    //         }
+    //         final_state_ta.push_back(qubit_state);
+    //     // } // end of qubit loop
+    //     all_state_ta.push_back(final_state_ta);
+    //     new_all_state_ta.push_back(final_state_ta);
+    // }
+
+    // vector<double> amplitudes_list(amplitudes.size());// to store the amplitudes that give the minimum distance
+    // double min_error = 1; // initialize to a large value
+
+    
+
+
+
+    // // //print final_state_ta
+    // // std::cout << "Final state from file: " << std::endl;
+    // // for (int i = 0; i < final_state_ta.size(); i++) {
+    // //     std::cout << "Target: " << i << std::endl;
+    // //     for (const auto& c : final_state_ta[i]) {
+    // //         print_complex_Ex(c);
+    // //     }
+    // // }
+
+    // for(double& amp : amplitudes) {
+    //     std::cout << "Amplitude: " << amp << std::endl;
+    //     new_all_state_ta[0] = solve_for_t(sample_t, q_max, amp, 0, max_target, qubit);
+    //     // cal error between new_all_state_ta and final_state_ta
+    //     double error = cal_error(new_all_state_ta[0], final_state_ta, qubit);
+    //     //print error
+    //     std::cout << "Error: " << error << std::endl;
+    //     if (error < min_error) {
+    //         min_error = error;
+    //         all_state_ta[0] = new_all_state_ta[0];
+    //         amplitudes_list[0] = amp;
+    //         std::cout << "New minimum error: " << min_error << std::endl;
     //     }
     // }
 
-    for(double& amp : amplitudes) {
-        std::cout << "Amplitude: " << amp << std::endl;
-        new_all_state_ta[0] = solve_for_t(sample_t, q_max, amp, 0, max_target, qubit);
-        // cal error between new_all_state_ta and final_state_ta
-        double error = cal_error(new_all_state_ta[0], final_state_ta, qubit);
-        //print error
-        std::cout << "Error: " << error << std::endl;
-        if (error < min_error) {
-            min_error = error;
-            all_state_ta[0] = new_all_state_ta[0];
-            amplitudes_list[0] = amp;
-            std::cout << "New minimum error: " << min_error << std::endl;
-        }
-    }
-
-    cout << "past first solve_for_t" << std::endl;
-    cout << endl << endl << endl;
+    // cout << "past first solve_for_t" << std::endl;
+    // cout << endl << endl << endl;
 
 
-    // vector<vector<vector<complex_Ex>>> curr_state_ta;
+    // // vector<vector<vector<complex_Ex>>> curr_state_ta;
 
-    for(int curr_mul = 1; curr_mul < (num_pulses*2) ; curr_mul++){ 
-        //run for time 192
+    // for(int curr_mul = 1; curr_mul < (num_pulses*2) ; curr_mul++){ 
+    //     //run for time 192
        
 
-        min_error = 1; // reset min_error for each time_frame
-        // go over all amplitudes
-        for(int amp = 0; amp < amplitudes.size(); amp++){
-            double amplitude = amplitudes[amp];
-            auto curr_state_ta = vector<vector<vector<vector<complex_Ex>>>> {};
-            auto new_state_ta = vector<vector<vector<complex_Ex>>> {};
-            // set new_state_ta to zeros
-            new_state_ta.resize(2); //resize for qubits
-            for (int qubit = 0; qubit < 2; qubit++){ //TODO: qubit is not used, so we can remove it
-                new_state_ta[qubit].resize(int(sample_t)); //resize for time
-                for (int i = 0; i < int(sample_t); i++){
-                    new_state_ta[qubit][i].resize(max_target);//resize for target states
-                    for (int j = 0; j < max_target; j++){
-                        new_state_ta[qubit][i][j].real = 0;
-                        new_state_ta[qubit][i][j].imag = 0;
-                    }
-                }
-            }
-            //print new_state_ta rested
-            std::cout << "New state ta reset for current multiplication: " << curr_mul << std::endl;
-
-
-            // print amplitude
-            std::cout << "Amplitude: " << amplitude << std::endl;
-
-            for (int start_state = 0; start_state < max_target; start_state++){
-                std::cout << "Start state: " << start_state << std::endl;
-                std::cout << std::endl;
-                
-                auto curr_state = vector<vector<vector<complex_Ex>>> {};
-
-                curr_state = solve_for_t(sample_t, q_max, amplitude, start_state, max_target, qubit);//TODO: save the entire function result to save time?
-
-                //insert curr state into curr_state_ta
-                curr_state_ta.push_back(curr_state);
-                               
-                //save to final state
-                // for(int qubit = 0; qubit < 2; qubit++){ //TODO: qubit is not used, so we can remove it
-                    std::cout << "qubit: " << qubit << std::endl;
-                    
-                    for(int i=0; i < int(sample_t); i++){
-                        cout << "Time: " << i << std::endl;
-                        for (int j = 0; j < max_target; j++){//curr_state_ta[qubit][0] refers to time 96
-                            
-                            // //print target
-                            // std::cout << "Target: " << j << std::endl;
-                            // std::cout << "starting " << start_state << std::endl;
-
-                            // //print curr_state_ta
-                            // std::cout << "previos all_state_ta:" << std::endl;
-                            // print_complex_Ex(all_state_ta[curr_mul-1][qubit][sample_t - 1][start_state]);
-                            
-                            // //print curr_state_ta
-                            // std::cout << "curr_state_ta:" << std::endl;
-                            // print_complex_Ex(curr_state_ta[start_state][qubit][i][j]);
-                            
-                            //multiply curr_state_ta with all_state_ta
-                            curr_state_ta[start_state][qubit][i][j] = complex_mult(curr_state_ta[start_state][qubit][i][j], all_state_ta[curr_mul-1][qubit][sample_t - 1][start_state]);
-                            
-                            // //print curr_state_ta
-                            // std::cout << "curr_state_ta:" << std::endl;
-                            // print_complex_Ex(curr_state_ta[start_state][qubit][i][j]);
-                            
-                            // std::cout << "pre new_all_state_ta:" << std::endl;
-                            // print_complex_Ex(new_state_ta[qubit][i][j]);
-                            
-                            divdiff_init();
-                            new_state_ta[qubit][i][j].real += curr_state_ta[start_state][qubit][i][j].real;
-                            new_state_ta[qubit][i][j].imag += curr_state_ta[start_state][qubit][i][j].imag;
-                            divdiff_clear_up();
-                            
-                            // //print new_all_state_ta
-                            // std::cout << "new_all_state_ta:" << std::endl;
-                            // print_complex_Ex(new_state_ta[qubit][i][j]);
-                            // // std::cout << "finished" << std::endl;
-                                
-                                
-                        }
-                    }
-                // }//end of qubit loop
-            }
-            // calculate error between new_all_state_ta and final_state_ta
-            double error = cal_error(new_state_ta, final_state_ta, qubit);
-            // double error = cal_error(new_all_state_ta[curr_mul], final_state_ta, qubit);
-            //print error
-            std::cout << "Error for amplitude " << amplitude << ": " << error << std::endl;
-            // if error is less than min_error, then save new_all_state_ta to all_state_ta
-            if (error < min_error) {
-                min_error = error;
-                // save new_all_state_ta to all_state_ta
-                all_state_ta[curr_mul] = new_state_ta;
-                // all_state_ta[curr_mul] = new_all_state_ta[curr_mul];
-                std::cout << "New minimum error: " << min_error << std::endl;
-                amplitudes_list[curr_mul] = amplitude;
-            }
-        }
-    }
-
-    // //print final state
-    // std::cout << "Final state!!!" << std::endl;
-    // for(int qubit = 0; qubit < 1; qubit++){
-    //     std::cout << "qubit: " << qubit << std::endl;
-    //     for (int j = 0; j < MAX_TARGET; j++){
-    //         std::cout << "Target: " << j << std::endl;
-    //         print_complex_Ex(final_state_ta[qubit][0][j]);
-    //     }
-    // }
-    
-    //save final state to a file
-    std::cout << "saving to file" << std::endl;
-
-    //print amplitudes_list
-    std::cout << "Amplitudes list: " << std::endl;
-    for (const auto& amp : amplitudes_list) {
-        std::cout << amp << " ";
-    }
-    
-    // Assuming all_transition_amplitudes is a vector<vector<complex<double>>>
-    for(int state=0; state < num_pulses*2; state++){
-        nlohmann::json j;
-        for(int qubit = 0; qubit < 2; qubit++){
-            //clear j
-            j.clear();
-            for (auto& vec : all_state_ta[state][qubit]) {
-                nlohmann::json sub_j;
-                for (auto& c : vec) {
-                    sub_j.push_back({{"real", c.real.get_double()}, {"imag", c.imag.get_double()}});
-                }
-                j.push_back(sub_j);
-            }
-    
-            std::string filename;
-            if (qubit == 0){
-                filename = "amplitudes_g_chg_pulse" + std::to_string(state) + "amp" + std::to_string(orig_amplitude) + "_q" + std::to_string(q_max) + ".json";
-            }else{
-                filename = "amplitudes_e_chg_pulse" + std::to_string(state) + "amp" + std::to_string(orig_amplitude) + "_q" + std::to_string(q_max) + ".json";
-            }
-            std::ofstream o(filename);
-            o << j << std::endl;
-        }
-
-    }
-
-    // // save mid_ta to a file
-    // nlohmann::json j_mid;
-    // for(int qubit = 0; qubit < 2; qubit++){
-    //     j_mid.clear();
-    //     for (auto& vec : mid_ta[qubit]) {
-    //         nlohmann::json sub_j;
-    //         for (auto& c : vec) {
-    //             sub_j.push_back({{"real", c.real.get_double()}, {"imag", c.imag.get_double()}});
+    //     min_error = 1; // reset min_error for each time_frame
+    //     // go over all amplitudes
+    //     for(int amp = 0; amp < amplitudes.size(); amp++){
+    //         double amplitude = amplitudes[amp];
+    //         auto curr_state_ta = vector<vector<vector<vector<complex_Ex>>>> {};
+    //         auto new_state_ta = vector<vector<vector<complex_Ex>>> {};
+    //         // set new_state_ta to zeros
+    //         new_state_ta.resize(2); //resize for qubits
+    //         for (int qubit = 0; qubit < 2; qubit++){ //TODO: qubit is not used, so we can remove it
+    //             new_state_ta[qubit].resize(int(sample_t)); //resize for time
+    //             for (int i = 0; i < int(sample_t); i++){
+    //                 new_state_ta[qubit][i].resize(max_target);//resize for target states
+    //                 for (int j = 0; j < max_target; j++){
+    //                     new_state_ta[qubit][i][j].real = 0;
+    //                     new_state_ta[qubit][i][j].imag = 0;
+    //                 }
+    //             }
     //         }
-    //         j_mid.push_back(sub_j);
+    //         //print new_state_ta rested
+    //         std::cout << "New state ta reset for current multiplication: " << curr_mul << std::endl;
+
+
+    //         // print amplitude
+    //         std::cout << "Amplitude: " << amplitude << std::endl;
+
+    //         for (int start_state = 0; start_state < max_target; start_state++){
+    //             std::cout << "Start state: " << start_state << std::endl;
+    //             std::cout << std::endl;
+                
+    //             auto curr_state = vector<vector<vector<complex_Ex>>> {};
+
+    //             curr_state = solve_for_t(sample_t, q_max, amplitude, start_state, max_target, qubit);//TODO: save the entire function result to save time?
+
+    //             //insert curr state into curr_state_ta
+    //             curr_state_ta.push_back(curr_state);
+                               
+    //             //save to final state
+    //             // for(int qubit = 0; qubit < 2; qubit++){ //TODO: qubit is not used, so we can remove it
+    //                 std::cout << "qubit: " << qubit << std::endl;
+                    
+    //                 for(int i=0; i < int(sample_t); i++){
+    //                     cout << "Time: " << i << std::endl;
+    //                     for (int j = 0; j < max_target; j++){//curr_state_ta[qubit][0] refers to time 96
+                            
+    //                         // //print target
+    //                         // std::cout << "Target: " << j << std::endl;
+    //                         // std::cout << "starting " << start_state << std::endl;
+
+    //                         // //print curr_state_ta
+    //                         // std::cout << "previos all_state_ta:" << std::endl;
+    //                         // print_complex_Ex(all_state_ta[curr_mul-1][qubit][sample_t - 1][start_state]);
+                            
+    //                         // //print curr_state_ta
+    //                         // std::cout << "curr_state_ta:" << std::endl;
+    //                         // print_complex_Ex(curr_state_ta[start_state][qubit][i][j]);
+                            
+    //                         //multiply curr_state_ta with all_state_ta
+    //                         curr_state_ta[start_state][qubit][i][j] = complex_mult(curr_state_ta[start_state][qubit][i][j], all_state_ta[curr_mul-1][qubit][sample_t - 1][start_state]);
+                            
+    //                         // //print curr_state_ta
+    //                         // std::cout << "curr_state_ta:" << std::endl;
+    //                         // print_complex_Ex(curr_state_ta[start_state][qubit][i][j]);
+                            
+    //                         // std::cout << "pre new_all_state_ta:" << std::endl;
+    //                         // print_complex_Ex(new_state_ta[qubit][i][j]);
+                            
+    //                         divdiff_init();
+    //                         new_state_ta[qubit][i][j].real += curr_state_ta[start_state][qubit][i][j].real;
+    //                         new_state_ta[qubit][i][j].imag += curr_state_ta[start_state][qubit][i][j].imag;
+    //                         divdiff_clear_up();
+                            
+    //                         // //print new_all_state_ta
+    //                         // std::cout << "new_all_state_ta:" << std::endl;
+    //                         // print_complex_Ex(new_state_ta[qubit][i][j]);
+    //                         // // std::cout << "finished" << std::endl;
+                                
+                                
+    //                     }
+    //                 }
+    //             // }//end of qubit loop
+    //         }
+    //         // calculate error between new_all_state_ta and final_state_ta
+    //         double error = cal_error(new_state_ta, final_state_ta, qubit);
+    //         // double error = cal_error(new_all_state_ta[curr_mul], final_state_ta, qubit);
+    //         //print error
+    //         std::cout << "Error for amplitude " << amplitude << ": " << error << std::endl;
+    //         // if error is less than min_error, then save new_all_state_ta to all_state_ta
+    //         if (error < min_error) {
+    //             min_error = error;
+    //             // save new_all_state_ta to all_state_ta
+    //             all_state_ta[curr_mul] = new_state_ta;
+    //             // all_state_ta[curr_mul] = new_all_state_ta[curr_mul];
+    //             std::cout << "New minimum error: " << min_error << std::endl;
+    //             amplitudes_list[curr_mul] = amplitude;
+    //         }
+    //     }
+    // }
+
+    // // //print final state
+    // // std::cout << "Final state!!!" << std::endl;
+    // // for(int qubit = 0; qubit < 1; qubit++){
+    // //     std::cout << "qubit: " << qubit << std::endl;
+    // //     for (int j = 0; j < MAX_TARGET; j++){
+    // //         std::cout << "Target: " << j << std::endl;
+    // //         print_complex_Ex(final_state_ta[qubit][0][j]);
+    // //     }
+    // // }
+    
+    // //save final state to a file
+    // std::cout << "saving to file" << std::endl;
+
+    // //print amplitudes_list
+    // std::cout << "Amplitudes list: " << std::endl;
+    // for (const auto& amp : amplitudes_list) {
+    //     std::cout << amp << " ";
+    // }
+    
+    // // Assuming all_transition_amplitudes is a vector<vector<complex<double>>>
+    // for(int state=0; state < num_pulses*2; state++){
+    //     nlohmann::json j;
+    //     for(int qubit = 0; qubit < 2; qubit++){
+    //         //clear j
+    //         j.clear();
+    //         for (auto& vec : all_state_ta[state][qubit]) {
+    //             nlohmann::json sub_j;
+    //             for (auto& c : vec) {
+    //                 sub_j.push_back({{"real", c.real.get_double()}, {"imag", c.imag.get_double()}});
+    //             }
+    //             j.push_back(sub_j);
+    //         }
+    
+    //         std::string filename;
+    //         if (qubit == 0){
+    //             filename = "amplitudes_g_chg_pulse" + std::to_string(state) + "amp" + std::to_string(orig_amplitude) + "_q" + std::to_string(q_max) + ".json";
+    //         }else{
+    //             filename = "amplitudes_e_chg_pulse" + std::to_string(state) + "amp" + std::to_string(orig_amplitude) + "_q" + std::to_string(q_max) + ".json";
+    //         }
+    //         std::ofstream o(filename);
+    //         o << j << std::endl;
     //     }
 
-    //     std::string filename;
-    //     if (qubit == 0){
-    //         filename = "mid_amplitudes_g_chg_amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
-    //     }else{
-    //         filename = "mid_amplitudes_e_chg_amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
-    //     }
-    //     std::ofstream o(filename);
-    //     o << j_mid << std::endl;
     // }
+
+    // // // save mid_ta to a file
+    // // nlohmann::json j_mid;
+    // // for(int qubit = 0; qubit < 2; qubit++){
+    // //     j_mid.clear();
+    // //     for (auto& vec : mid_ta[qubit]) {
+    // //         nlohmann::json sub_j;
+    // //         for (auto& c : vec) {
+    // //             sub_j.push_back({{"real", c.real.get_double()}, {"imag", c.imag.get_double()}});
+    // //         }
+    // //         j_mid.push_back(sub_j);
+    // //     }
+
+    // //     std::string filename;
+    // //     if (qubit == 0){
+    // //         filename = "mid_amplitudes_g_chg_amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
+    // //     }else{
+    // //         filename = "mid_amplitudes_e_chg_amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
+    // //     }
+    // //     std::ofstream o(filename);
+    // //     o << j_mid << std::endl;
+    // // }
 
     return 0;
 }

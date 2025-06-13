@@ -255,7 +255,7 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
 int main(int argc, char* argv[]) {
     //get the parameters
     // initial values
-    double amplitude = -0.002;
+    double amplitude = 0.002;
     int q_max = 10; 
     int max_target = 8;
 
@@ -269,6 +269,12 @@ int main(int argc, char* argv[]) {
     }
 
     double  amplitudes[] = {amplitude, amplitude*2, -1*amplitude*2, -1 * amplitude};
+    // double  amplitudes[] = {0.000644243, 0.000648006, 0.000651733, 0.000655424};
+    //print amplitudes
+    std::cout << "Amplitudes: " << std::endl;
+    for (int i = 0; i < sizeof(amplitudes)/sizeof(amplitudes[0]); i++) {
+        std::cout << "Amplitude " << i << ": " << amplitudes[i] << std::endl;
+    }
     // double  amplitudes[] = {};
     // for(int i = 0; i < num_pulses*2; i++){
     //     if(i < num_pulses){
