@@ -40,6 +40,11 @@ for j in range(num_target):
     imag = target_data[-1][j]['imag']
     target_vector[j] = real + 1j * imag
 
+
+# new targer vector
+target_vector = np.zeros(num_target, dtype=np.complex128)
+target_vector[2] = 1.0 + 0.0j  # (0, 0, 0, 1, 0, ..., 0)    
+
 # Print target vector information
 print(f"Target vector shape: {target_vector.shape}")
 print(f"Target vector: {target_vector}")
@@ -77,7 +82,7 @@ def objective(x_vals):
     return 1.0 - fidelity
 
 # === Run optimization ===
-x0 = np.zeros(4)  # or any number of steps
+x0 = np.zeros(10)  # or any number of steps
 
 result = minimize(objective, x0, method='BFGS', options={'disp': True})
 

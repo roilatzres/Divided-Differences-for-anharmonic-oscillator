@@ -409,9 +409,9 @@ int main(int argc, char* argv[]) {
     
             std::string filename;
             if (qubit == 0){
-                filename = "amplitudes_g_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
+                filename = "amplitudes_g_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + ".json";
             }else{
-                filename = "amplitudes_e_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
+                filename = "amplitudes_e_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + ".json";
             }
             std::ofstream o(filename);
             o << j << std::endl;

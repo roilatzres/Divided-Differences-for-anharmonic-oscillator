@@ -463,11 +463,11 @@ int main(int argc, char* argv[]) {
 
     int num_pulses = 2;
 
-    int qubit = 1; // default qubit to 0
-    std::string final_state_filename = "amplitudes_e_chg_pulse3amp0.002000_q10.json"; 
+    int qubit = 0; // default qubit to 0
+    std::string final_state_filename = "amplitudes_g_chg_pulse3amp0.002000_q10.json"; 
 
     // Check if command line arguments are provided
-    if(argc > 1 && argc < 3){
+    if(argc == 2){
         final_state_filename = argv[1]; // get the final state filename from command line arguments
     }
 
@@ -514,7 +514,7 @@ int main(int argc, char* argv[]) {
     
     
     //load final_state_ta from file
-    std::string final_state_filename = "amplitudes_e_chg_amp0.002000_q10.json"; 
+    // std::string final_state_filename = "amplitudes_e_chg_amp0.002000_q10.json"; 
     std::ifstream final_state_file(final_state_filename);
     vector<vector<complex_Ex>> final_state_ta;
     if (final_state_file.is_open()) {
