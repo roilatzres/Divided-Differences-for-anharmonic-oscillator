@@ -31,7 +31,7 @@ void print_complex_Ex(complex_Ex a){
 
 
 // int main(int argc, char* argv[]) {
-vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double amplitude, int start_state, int max_target){
+vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, complex<double> amplitude, int start_state, int max_target){
     complex<double> i_num(0, 1);
     
     //original parameters
@@ -73,12 +73,10 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
 
     // vector of all transition amplitudes for all times: [time][target_state][amp]
     vector<vector<vector<complex_Ex>>> all_transition_amplitudes(2);
-    vector<vector<complex<double>>> all_transition_amplitudes_g;
-    vector<vector<complex<double>>> all_transition_amplitudes_e;
     
-    //define start state
-    // int start_state = 0;
-    int total_steps = 100;
+    // //define start state
+    // // int start_state = 0;
+    // int total_steps = 100;
 
     // Create a 3D vector to store the results
     vector< //target_step
@@ -91,8 +89,8 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
     for (int qubit = 0; qubit < 2; qubit++){
 
         // //loop over all times
-        // // for (int i = 0; i < times.size(); i++) { //TODO: i=0
-        for (int i = 0; i < time; i++) { //TODO: i=0
+        // // for (int i = 0; i < times.size(); i++) { 
+        for (int i = 0; i < time; i++) { 
             t = times[i];
         //     // t = 96;
             
@@ -120,7 +118,7 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
                     q_amp.real = 0;
                     q_amp.imag = 0;
 
-                    double energy_coefficient_amp = std::pow(amplitude, q);
+                    complex<double> energy_coefficient_amp = std::pow(amplitude, q); //TODO: check if complex amplitude is valid for pow
 
                     if (target == start_state && q == 0){
                         complex<double> exponent = std::exp(-i_num * t * (start_state * chi * qubit));
@@ -129,14 +127,14 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
                         continue;
                     }
 
-                    std::string q_amp_filename = "./include/q_amp/dispersive_const_new/dispersive_q_amp_start_state_" + std::to_string(start_state) 
+                    std::string q_amp_filename = "./include/q_amp/dispersive_sin/dispersive_q_amp_start_state_" + std::to_string(start_state) 
                          + "_qubit_" + std::to_string(qubit) + "_t_" + std::to_string((int)t) + "_target_" + std::to_string(target) + "_q" + std::to_string(q) + ".bin";
                     std::ifstream infile_q_amp(q_amp_filename);
 
                     if (infile_q_amp) {
                         q_amp = load_binary_complexEx(q_amp_filename);
-                        q_amp.real *= energy_coefficient_amp; 
-                        q_amp.imag *= energy_coefficient_amp; 
+                        q_amp.real *= energy_coefficient_amp.real(); 
+                        q_amp.imag *= energy_coefficient_amp.imag(); 
 
                         divdiff_init();
                         total_amp.real += q_amp.real.get_double();
@@ -144,7 +142,8 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
                         divdiff_clear_up();
                         continue;
                     }
-
+                    
+                    //TODO: check if same for const pulse and dont need extra folder
                     auto permutations = vector<vector<int>> {};
                     std::string perm_filename = "./include/permutations/dispersive_const_perms/start_state" +
                     std::to_string(start_state) + "_target_" + std::to_string(target) + "_q" + std::to_string(q) + ".txt";
@@ -161,6 +160,7 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
                         }
                     }
                        
+                    //TODO: check if same for const pulse and dont need extra folder
                     vector<std::tuple<double, int, vector<int>>> all_coefficients_const_pulse;
                     std::string all_coef_filename = "./include/parms/dispersive_const/start_state" +
                     std::to_string(start_state) + "_target_" + std::to_string(target) + "_q" + std::to_string(q) + ".txt";
@@ -187,8 +187,8 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
                     
                     save_binary_complexEx(q_amp, q_amp_filename);
                     
-                    q_amp.real *= energy_coefficient_amp; 
-                    q_amp.imag *= energy_coefficient_amp; 
+                    q_amp.real *= energy_coefficient_amp.real(); 
+                    q_amp.imag *= energy_coefficient_amp.imag(); 
 
                     divdiff_init();
                     total_amp.real += q_amp.real.get_double();
@@ -232,21 +232,41 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double time, int q_max, double am
         //end of time loop
         }
 
-        // //print all transition amplitudes with location in the vector
-        // std::cout << "All transition amplitudes: " << std::endl;
-        // for (int i = 0; i < all_transition_amplitudes[qubit].size(); i++) {
-        //     std::cout << "Time: " << times[i] << std::endl;
-        //     for (int j = 0; j < all_transition_amplitudes[qubit][i].size(); j++) {
-        //         std::cout << "Target: " << j << " Amplitude: ";
-        //         print_complex_Ex(all_transition_amplitudes[qubit][i][j]);
-        //     }
-        // }
+        //print all transition amplitudes with location in the vector
+        std::cout << "All transition amplitudes: " << std::endl;
+        for (int i = 0; i < all_transition_amplitudes[qubit].size(); i++) {
+            std::cout << "Time: " << times[i] << std::endl;
+            for (int j = 0; j < all_transition_amplitudes[qubit][i].size(); j++) {
+                std::cout << "Target: " << j << " Amplitude: ";
+                print_complex_Ex(all_transition_amplitudes[qubit][i][j]);
+            }
+        }
     
     }
 
     std::cout << "Exiting solve_for_t" << std::endl;
 
     return all_transition_amplitudes;
+}
+
+// # condisp_pulse1 = amp *  np.sin((times) * detuning) * np.exp(-1j*omega_shift*times) 
+vector<complex<double>> cal_amps(double amplitude, double chi, double t, double detuning, double sample_t){
+    complex<double> i_num(0, 1);
+    
+    vector<complex<double>> amps;
+
+    for(int i = 1; i <= t+1; i+=sample_t){
+        double sin_omega_t = amplitude * std::sin(detuning * i );
+        // //print sin_omega_t
+        // std::cout << "sin_omega_t: " << sin_omega_t << std::endl;
+        complex<double> expo = std::exp(-i_num * chi * (double)i);
+        // //print expo
+        // std::cout << "expo: " << expo << std::endl;
+        complex<double> amp = sin_omega_t * expo;
+        // complex<double> amp = sin_omega_t;
+        amps.push_back(amp);
+    }
+    return amps;
 }
 
 
@@ -268,33 +288,28 @@ int main(int argc, char* argv[]) {
         num_pulses = std::stoi(argv[4]);
     }
 
-    // double  amplitudes[] = {amplitude, amplitude*2, -1*amplitude*2, -1 * amplitude};
-    double  amplitudes[] = {amplitude, -1 * amplitude};
-    // double  amplitudes[] = {0.000644243, 0.000648006, 0.000651733, 0.000655424};
-    //print amplitudes
-    std::cout << "Amplitudes: " << std::endl;
-    for (int i = 0; i < sizeof(amplitudes)/sizeof(amplitudes[0]); i++) {
-        std::cout << "Amplitude " << i << ": " << amplitudes[i] << std::endl;
-    }
-    // double  amplitudes[] = {};
-    // for(int i = 0; i < num_pulses*2; i++){
-    //     if(i < num_pulses){
-    //         amplitudes[i] =  amplitude * (i + 1);
-    //     }else{
-    //         amplitudes[i] =  -1 * amplitude * (num_pulses*2 - i);
-    //     }
-    // }
+    //original parameters
+    double multiplier = 4;
+    float sigma = 48;
+    float timestep = 1;
+    double chi = -279e-6 * 2 * M_PI; 
+    
+    
+    double init_t = sigma * multiplier;
+    double sample_t = init_t / num_pulses;
+    double final_t = init_t;
+    vector<complex<double>> all_amps = cal_amps(amplitude, chi, final_t,  2 * M_PI / final_t, sample_t);
 
-    double init_t = 192;
-    double sample_t = init_t / 2 / num_pulses;
-    double mid_t = 96;
-    double final_t = 192;
+    printf("Amplitudes: \n");
+    for (int i = 0; i < all_amps.size(); i++) {
+        std::cout << "Amplitude " << i << ": " << all_amps[i] << std::endl;
+    }
 
     //init final_state_ta to [2][1][8]
     
     //init all_state_ta 
     vector<vector<vector<vector<complex_Ex>>>> all_state_ta;
-    for(int state=0; state < num_pulses*2; state++){
+    for(int state=0; state < num_pulses; state++){
         vector<vector<vector<complex_Ex>>> final_state_ta;
         for (int qubit = 0; qubit < 2; qubit++){
             vector<vector<complex_Ex>> qubit_state;
@@ -313,20 +328,14 @@ int main(int argc, char* argv[]) {
         all_state_ta.push_back(final_state_ta);
     }
 
-    // std::cout << "Mid state!!!" << std::endl;
-    // //run for time 96
-    // auto mid_ta = vector<vector<vector<complex_Ex>>> {};
+
     
-    // mid_ta = solve_for_t(mid_t, q_max, amplitude, 0, max_target);
-    // std::cout << "Past !!!" << std::endl;
-    // get state
-    
-    all_state_ta[0] = solve_for_t(sample_t, q_max, amplitudes[0], 0, max_target);
+    all_state_ta[0] = solve_for_t(sample_t, q_max, all_amps[0], 0, max_target);
 
     // run all states for time 192
     // vector<vector<vector<complex_Ex>>> curr_state_ta;
 
-    for(int curr_mul = 1; curr_mul < (num_pulses*2) ; curr_mul++){
+    for(int curr_mul = 1; curr_mul <= num_pulses ; curr_mul++){
         //run for time 192
         auto curr_state_ta = vector<vector<vector<vector<complex_Ex>>>> {};
         for (int start_state = 0; start_state < max_target; start_state++){
@@ -334,43 +343,42 @@ int main(int argc, char* argv[]) {
             std::cout << std::endl;
     
             auto curr_state = vector<vector<vector<complex_Ex>>> {};
-            auto curr_amp = curr_mul < num_pulses ? amplitudes[0] : amplitudes[1];
-            curr_state = solve_for_t(sample_t, q_max, curr_amp, start_state, max_target);
+            curr_state = solve_for_t(sample_t, q_max, all_amps[curr_mul], start_state, max_target);//TODO: add total_t for the cal of the divdiff
             
             //insert curr state into curr_state_ta
             curr_state_ta.push_back(curr_state);
             
             //save to final state
             for(int qubit = 0; qubit < 2; qubit++){
-                // std::cout << "qubit: " << qubit << std::endl;
+                std::cout << "qubit: " << qubit << std::endl;
                 
                 for(int i=0; i < int(sample_t); i++){
-                    // cout << "Time: " << i << std::endl;
+                    cout << "Time: " << i << std::endl;
                     for (int j = 0; j < max_target; j++){//curr_state_ta[qubit][0] refers to time 96
-                        // //print target
-                        // std::cout << "Target: " << j << std::endl;
-                        // std::cout << "starting " << start_state << std::endl;
+                        //print target
+                        std::cout << "Target: " << j << std::endl;
+                        std::cout << "starting " << start_state << std::endl;
     
-                        // //print curr_state_ta
-                        // std::cout << "curr_state_ta:" << std::endl;
-                        // print_complex_Ex(curr_state_ta[start_state][qubit][i][j]);
+                        //print curr_state_ta
+                        std::cout << "curr_state_ta:" << std::endl;
+                        print_complex_Ex(curr_state_ta[start_state][qubit][i][j]);
     
                         curr_state_ta[start_state][qubit][i][j] = complex_mult(curr_state_ta[start_state][qubit][i][j], all_state_ta[curr_mul-1][qubit][sample_t - 1][start_state]);
                         
-                        // //print curr_state_ta
-                        // std::cout << "new curr_state_ta:" << std::endl;
-                        // print_complex_Ex(curr_state_ta[start_state][qubit][i][j]);
+                        //print curr_state_ta
+                        std::cout << "new curr_state_ta:" << std::endl;
+                        print_complex_Ex(curr_state_ta[start_state][qubit][i][j]);
                         
                         divdiff_init();
                         all_state_ta[curr_mul][qubit][i][j].real += curr_state_ta[start_state][qubit][i][j].real;
                         all_state_ta[curr_mul][qubit][i][j].imag += curr_state_ta[start_state][qubit][i][j].imag;
                         divdiff_clear_up();
     
-                        // //print final_state_ta
-                        // std::cout << "final_state_ta:" << std::endl;
-                        // print_complex_Ex(all_state_ta[curr_mul][qubit][i][j]);
+                        //print final_state_ta
+                        std::cout << "final_state_ta:" << std::endl;
+                        print_complex_Ex(all_state_ta[curr_mul][qubit][i][j]);
                         
-                        // std::cout << "finished" << std::endl;
+                        std::cout << "finished" << std::endl;
                     }
                 }
             }
@@ -406,9 +414,9 @@ int main(int argc, char* argv[]) {
     
             std::string filename;
             if (qubit == 0){
-                filename = "new_runs/amplitudes_g_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + ".json";
+                filename = "sin_pulse_runs/amplitudes_g_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + "_p" + std::to_string(num_pulses)+ ".json";
             }else{
-                filename = "new_runs/amplitudes_e_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + ".json";
+                filename = "sin_pulse_runs/amplitudes_e_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + "_p" + std::to_string(num_pulses)+ ".json";
             }
             std::ofstream o(filename);
             o << j << std::endl;
@@ -416,27 +424,7 @@ int main(int argc, char* argv[]) {
 
     }
 
-    // // save mid_ta to a file
-    // nlohmann::json j_mid;
-    // for(int qubit = 0; qubit < 2; qubit++){
-    //     j_mid.clear();
-    //     for (auto& vec : mid_ta[qubit]) {
-    //         nlohmann::json sub_j;
-    //         for (auto& c : vec) {
-    //             sub_j.push_back({{"real", c.real.get_double()}, {"imag", c.imag.get_double()}});
-    //         }
-    //         j_mid.push_back(sub_j);
-    //     }
 
-    //     std::string filename;
-    //     if (qubit == 0){
-    //         filename = "mid_amplitudes_g_chg_amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
-    //     }else{
-    //         filename = "mid_amplitudes_e_chg_amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
-    //     }
-    //     std::ofstream o(filename);
-    //     o << j_mid << std::endl;
-    // }
 
     return 0;
 }
