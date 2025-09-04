@@ -116,51 +116,68 @@ ExExFloat ExPow(ExExFloat base, int exp) {
 // ****************************************************************************************
 // ***************** permutation generation ***********************************************
 // ****************************************************************************************
-struct Step {
-    int first;
-    int second;
+struct step {
+    int cavity;
+    int qubit;
 };
 
 // Function to compute all possible permutations of steps to reach the target step on a ladder
-vector<vector<Step>> jc_ladder_permutations(int target_first, int target_second, int moves) {
-    vector<vector<Step>> all_combinations;
+vector<vector<step>> jc_ladder_permutations(step start_step, step top_step, step target, int moves) {
+    vector<vector<step>> all_combinations;
 
     // Backtrack function to generate permutations recursively
-    std::function<void(Step, int, vector<Step>&)> jc_backtrack = [&](Step curr_step, int remaining_moves, vector<Step>& combination) {
+    std::function<void(step, int, vector<step>&)> jc_backtrack = [&](step curr_step, int remaining_moves, vector<step>& combination) {
+        
+        // // Print the current path
+        // std::cout << "Backtracking: ";
+        // std::cout << "curr step: (" << curr_step.cavity << "," << curr_step.qubit << ") |" << endl;
+        // for (const auto& s : combination) {
+        //     std::cout << " (" << s.cavity << "," << s.qubit << ") -> ";
+        // }
+        // std::cout << "| Moves left: " << remaining_moves << std::endl;
+
         // Base case: If remaining moves is 0 and current step is target step, add current combination
         if (remaining_moves == 0) {
-            if (curr_step.first == target_first && curr_step.second == target_second) {
+            if (curr_step.cavity == target.cavity && curr_step.qubit == target.qubit) {
+                // std::cout << "Found valid permutation: ";
                 all_combinations.push_back(combination);
             }
             return;
         }
 
-        // Try moving first + 1, second
-        combination.push_back({curr_step.first + 1, curr_step.second});
-        jc_backtrack({curr_step.first + 1, curr_step.second}, remaining_moves - 1, combination);
-        combination.pop_back();
 
-        // Try moving first - 1, second
-        combination.push_back({curr_step.first - 1, curr_step.second});
-        jc_backtrack({curr_step.first - 1, curr_step.second}, remaining_moves - 1, combination);
-        combination.pop_back();
+        // Try moving cavity + 1, qubit
+        if( curr_step.cavity < top_step.cavity) {
+            combination.push_back({curr_step.cavity + 1, curr_step.qubit});
+            jc_backtrack({curr_step.cavity + 1, curr_step.qubit}, remaining_moves - 1, combination);
+            combination.pop_back();
+        }
+        // Try moving cavity - 1, qubit
+        if( curr_step.cavity > 0) {
+            combination.push_back({curr_step.cavity - 1, curr_step.qubit});
+            jc_backtrack({curr_step.cavity - 1, curr_step.qubit}, remaining_moves - 1, combination);
+            combination.pop_back();
+        }
 
-        // Try moving first + 1, second - 1
-        combination.push_back({curr_step.first + 1, curr_step.second - 1});
-        jc_backtrack({curr_step.first + 1, curr_step.second - 1}, remaining_moves - 1, combination);
-        combination.pop_back();
+        // Try moving cavity + 1, qubit - 1
+        if( curr_step.qubit > 0 && curr_step.cavity < top_step.cavity) {
+            combination.push_back({curr_step.cavity + 1, curr_step.qubit - 1});
+            jc_backtrack({curr_step.cavity + 1, curr_step.qubit - 1}, remaining_moves - 1, combination);
+            combination.pop_back();
+        }   
 
-        // Try moving first - 1, second + 1
-        combination.push_back({curr_step.first - 1, curr_step.second + 1});
-        jc_backtrack({curr_step.first - 1, curr_step.second + 1}, remaining_moves - 1, combination);
-        combination.pop_back();
+        // Try moving cavity - 1, qubit + 1
+        if( curr_step.cavity > 0 && curr_step.qubit < top_step.qubit) {
+            combination.push_back({curr_step.cavity - 1, curr_step.qubit + 1});
+            jc_backtrack({curr_step.cavity - 1, curr_step.qubit + 1}, remaining_moves - 1, combination);
+            combination.pop_back();
+        }   
     };
 
     // Initialize combination list
-    vector<Step> combination;
-    Step start = {0, 0}; // Start from {0, 0}
-    // Start backtracking from step {0, 0} with given number of moves
-    jc_backtrack(start, moves, combination);
+    vector<step> combination;
+    // Start backtracking start_step with given number of moves
+    jc_backtrack(start_step, moves, combination);
 
     return all_combinations;
 }
@@ -277,8 +294,6 @@ std::tuple<vector<DivdiffElement>, double, int, vector<int>> cal_coefficient(vec
         current_state = new_state;
     }
 
-    // TODO: check why the E-3 factor is needed
-    // FIXME: the factor is amplitude!!
 
     int final_state = current_state;
 
@@ -300,7 +315,7 @@ std::tuple<vector<DivdiffElement>, double, int, vector<int>> cal_coefficient(vec
             
             DivdiffElement plus, minus;
             plus.coefficient = -beta_element.coefficient;
-            plus.omega = beta_element.omega; // TODO: check if vector placement is correct
+            plus.omega = beta_element.omega; 
             
             //access last element of omega and add 1
             int last_element_plus = beta_element.omega.back();
@@ -336,7 +351,7 @@ std::tuple<double, int, vector<int>> cal_coefficient_const_pulse(vector<int> per
     // initialize vector for all states in the permutation
     vector<int> states;
     states.push_back(start_state);
-
+    
     // Iterate through each step in the permutation
     for (int i = 0; i < permutation.size(); ++i) {
         // Update current state
@@ -352,13 +367,46 @@ std::tuple<double, int, vector<int>> cal_coefficient_const_pulse(vector<int> per
         current_state = new_state;
     }
 
-    // TODO: check why the E-3 factor is needed
-    // FIXME: the factor is amplitude!!
-
+    
     int final_state = current_state;
     return std::make_tuple(energy_coefficient_real, final_state, states);
+    
+}
+
+// Function to compute coefficients and divdiff elements for a given permutation with the jc hamiltonaian
+std::tuple<double, step, vector<step>> cal_coefficient_const_pulse_jc(vector<step> permutation, step start_state, double amp, double coupling) {
+    // Initialize divdiff elements, current state, and coefficient
+    double energy_coefficient_real = 1;
+    step current_state = start_state;
+    
+    // initialize vector for all states in the permutation
+    vector<step> states;
+    states.push_back(start_state);
+
+    for(int i = 0; i < permutation.size(); ++i) {
+                
+        // Update energy_coefficient_real
+        if (permutation[i].cavity - current_state.cavity == 1 && permutation[i].qubit == current_state.qubit) { // a^dagger
+            energy_coefficient_real *= sqrt(current_state.cavity + 1) * amp ;
+        }
+        else if (permutation[i].cavity - current_state.cavity == -1 && permutation[i].qubit == current_state.qubit) { // a
+            energy_coefficient_real *= sqrt(current_state.cavity) * amp;
+        }
+        else if (permutation[i].cavity - current_state.cavity == 1 && permutation[i].qubit - current_state.qubit == -1) { // a^dagger q
+            energy_coefficient_real *= sqrt(current_state.qubit * (current_state.cavity + 1)) * coupling;
+        } 
+        else if (permutation[i].cavity - current_state.cavity == -1 && permutation[i].qubit - current_state.qubit == 1) { // a q^dagger
+            energy_coefficient_real *= sqrt((current_state.qubit + 1) * current_state.cavity) * coupling;
+        }
+        
+        states.push_back(permutation[i]);
+        current_state = permutation[i];
+    }
+
+    return std::make_tuple(energy_coefficient_real, current_state, states);
 
 }
+
 
 
 /************** calculate divided differences for specific q and t****************/
@@ -530,13 +578,116 @@ complex_Ex cal_divdiff_const_amp(const std::tuple<double, int, std::vector<int>>
     complex<ExExFloat> z_n = d.divdiffs[states.size() -1];
     complex<ExExFloat> final_element = (z_n * cal_neg_i_pow(q) * pow(t, q)) /factorial(q);
 
-    //TODO: remove d from memory
     complex_Ex res;
     res.real = final_element.real().get_double() * energy_coefficient;
     res.imag = final_element.imag().get_double() * energy_coefficient;
 
     return res;
 }
+
+complex_Ex cal_divdiff_sin_amp(const std::tuple<double, int, std::vector<int>> &coefficient,
+                             double t, int q, int qubit, double chi) {
+    auto energy_coefficient = std::get<0>(coefficient);
+    auto final_state = std::get<1>(coefficient);
+    auto states = std::get<2>(coefficient);
+    complex<double> j(0, 1);
+
+    
+    //calculate divided differences
+    // divdiff_init();
+
+    divdiffcomplex d(14,500);// max step is 14)
+
+
+    //print divdiff size
+    int num_elem = 0;
+    int CurrentLength = 0;
+    int state_chi = 0;
+
+    for(int i=0; i < states.size(); i++){
+        const auto& state_n = states[i];
+        complex<double> n;
+        if(i == 0){
+            // n = (-j * t * (state_n * chi * (qubit - 1)));
+            n = (-j * t * (state_n * chi * (qubit)));
+        }else{
+            const auto& state_n1 = states[i-1];
+            if (state_n1 < state_n){//a^dagger
+                state_chi += 1;
+            }else{ //a
+                state_chi -= 1;
+            }
+            n = (-j * t * (state_n * chi * (qubit) + state_chi * chi));
+        }
+        d.AddElement(n);
+    }
+    complex<ExExFloat> z_n = d.divdiffs[states.size() -1];
+    complex<ExExFloat> final_element = (z_n * cal_neg_i_pow(q) * pow(t, q)) /factorial(q);
+
+    complex_Ex res;
+    res.real = final_element.real().get_double() * energy_coefficient;
+    res.imag = final_element.imag().get_double() * energy_coefficient;
+
+    return res;
+}
+
+complex_Ex cal_divdiff_sin_amp_jc(const std::tuple<double, step, std::vector<step>> &coefficient,
+                             double t, int q, int qubit, double chi, double alpha, double delta) {
+    auto energy_coefficient = std::get<0>(coefficient);
+    auto final_state = std::get<1>(coefficient);
+    auto states = std::get<2>(coefficient);
+    complex<double> j(0, 1);
+
+    //calculate divided differences
+    // divdiff_init();
+    divdiffcomplex d(14,500);// max step is 14)
+
+    //print divdiff size
+    int num_elem = 0;
+    int CurrentLength = 0;
+    int curr_chi = 0;
+    int curr_delta = 0;
+
+    for(int i=0; i < states.size(); i++){
+        complex<double> n;
+        
+        double diagonal_element = (alpha) * states[i].qubit * (states[i].qubit - 1);
+        
+        if(i == 0){
+            // n = (-j * t * (state_n * chi * (qubit - 1)));
+            n = (-j * t * diagonal_element);
+        }else{
+             // Update energy_coefficient_real
+             if (states[i].cavity - states[i-1].cavity == 1 && states[i].qubit == states[i-1].qubit) { // a^dagger
+                curr_chi += 1;
+            }
+            else if (states[i].cavity - states[i-1].cavity == -1 && states[i].qubit == states[i-1].qubit) { // a
+                curr_chi -= 1; 
+            }
+            else if (states[i].cavity - states[i-1].cavity == 1 && states[i].qubit - states[i-1].qubit == -1) { // a^dagger q
+                curr_delta += 1;
+            } 
+            else if (states[i].cavity - states[i-1].cavity == -1 && states[i].qubit - states[i-1].qubit == 1) { // a q^dagger
+                curr_delta -= 1;
+            }
+            
+            n = (-j * t * (curr_chi * chi + curr_delta * delta + diagonal_element));
+        }
+        d.AddElement(n);
+    }
+    complex<ExExFloat> z_n = d.divdiffs[states.size() - 1];
+    complex<ExExFloat> final_element = (z_n * cal_neg_i_pow(q) * pow(t, q)) /factorial(q);
+
+    complex_Ex res;
+    res.real = final_element.real().get_double() * energy_coefficient;
+    res.imag = final_element.imag().get_double() * energy_coefficient;
+
+    return res;
+}
+
+
+
+
 
 
 // clear up the divdiff memory
