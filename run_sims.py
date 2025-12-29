@@ -8,20 +8,20 @@ EXECUTABLE = "./main_jc_multi_piece_base"  # adjust if needed
 
 # Base parameter template
 base_params = {
-    "final_t": 19200,
+    "final_t": 192,
     "multiplier": 4,
     "sigma": 48,
     "timestep": 1,
-    "chi": -279e-8,
-    "alpha": 200e-5,
-    "delta": 2e-2,
+    "chi": -279e-6,
+    "alpha": 200e-3,
+    "delta": 2,
     "amplitude": 0,
     "q_max": 4,
     "max_target_cavity": 4,
     "max_target_qubit": 2,
     "start_state_cavity": 0,
     "start_state_qubit": 1,
-    "num_pulses": 384,
+    "num_pulses": 192,
     "out_dir": "jc_base/",
     "max_total_cavity": 300,
     "max_total_qubit": 2
@@ -30,8 +30,8 @@ base_params = {
 # Define parameter ranges to sweep over
 amplitudes = [1e-7]
 q_max_values = [4,7]
-num_pulses_list = [1920]
-max_target_cavity = [3,4]
+num_pulses_list = [192]
+max_target_cavity = [3,6,9]
 max_target_qubit = [2]
 sq_list = [0,1]
 # # Define parameter ranges to sweep over

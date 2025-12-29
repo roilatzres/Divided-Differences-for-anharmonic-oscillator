@@ -75,10 +75,16 @@ def show_amp_json_dispersive(amp_json):
         combined_alpha_t_imag.append(alpha_t.imag)
         labels.append(f"pulse {pulse_num}")
 
+    print("combined_alpha_t_real")
+    print(combined_alpha_t_real)
+    print("combined_alpha_t_imag")
+    print(combined_alpha_t_imag)
+
     # Combined plot
     plt.figure(figsize=(10, 6))
     for i in range(len(combined_alpha_t_real)):
-        plt.plot(combined_alpha_t_real[i], combined_alpha_t_imag[i], label=labels[i])
+        plt.plot(combined_alpha_t_real[i], combined_alpha_t_imag[i],
+             marker='o', linestyle='none', label=labels[i])
     plt.xlabel("Re(alpha_t)")
     plt.ylabel("Im(alpha_t)")
     plt.title("Combined alpha_t trajectories for all pulses")
@@ -97,8 +103,8 @@ def generate_amp_json(prefix, state, num_pulses, amp, q, n):
     Example: amplitudes_e_chg_pulse0amp0.025000_q18_n8_p192.json
     """
     return [
-        # f"{prefix}_{state}_chg_pulse{i}amp{amp:.6f}_q{q}_n{n}_p{num_pulses}.json"
-        f"{prefix}_{state}_chg_pulse{i}amp{amp:.6f}_q{q}_n{n}.json"
+        f"{prefix}_{state}_chg_pulse{i}amp{amp:.6f}_q{q}_n{n}_p{num_pulses}.json"
+        # f"{prefix}_{state}_chg_pulse{i}amp{amp:.6f}_q{q}_n{n}.json"
         for i in range(num_pulses)
     ]
 
@@ -385,13 +391,6 @@ nc_list = [3, 4]
 chi_list = [-2.79e-6]
 sq_list = [0,1]
 
-num_pulses = 9600
-amp = 0.000000
-# amp = 0.0001
-q = 5
-# n = 30
-nc = 5
-nq = 2
 # amp_json = generate_amp_jc_json("jc_runs-neg-alpha/amplitudes",  amp, q, nc, nq, num_pulses)
 # amp_json = generate_amp_jc_json("jc_no_amp/amplitudes",  amp, q, nc, nq, num_pulses)
 # amp_json = generate_amp_jc_json("jc_runs/amplitudes",  amp, q, nc, nq, num_pulses)
@@ -403,19 +402,27 @@ nq = 2
 # print(amp_json)
 # show_amp(amp_json, amp, q)
 
-for amp in amplitudes:
-    for q in q_max_values:
-        for num_pulses in num_pulses_list:
-            for nc in nc_list:
-                for chi in chi_list:
-                    for sq in sq_list:
-                        # amp_json = generate_amp_jc_json(f"fresh/0_0/a{amp}_q{q}_p{num_pulses}/amplitudes",  amp, q, nc, nq, num_pulses)
-                        # amp_json = generate_amp_jc_json(f"jc_fresh2/a1e-07_q{q}_p{num_pulses}_chi{chi}_sq{sq}_delta{delta}/amplitudes",  amp, q, nc, nq, num_pulses)
-                        amp_json = generate_amp_jc_json(f"jc_base/a1e-07_q{q}_p{num_pulses}_sq{sq}/amplitudes",  amp, q, nc, nq, num_pulses)
-                        print(amp_json)
-                        show_amp(amp_json, amp, q, sq, chi)
+# for amp in amplitudes:
+#     for q in q_max_values:
+#         for num_pulses in num_pulses_list:
+#             for nc in nc_list:
+#                 for chi in chi_list:
+#                     for sq in sq_list:
+#                         # amp_json = generate_amp_jc_json(f"fresh/0_0/a{amp}_q{q}_p{num_pulses}/amplitudes",  amp, q, nc, nq, num_pulses)
+#                         # amp_json = generate_amp_jc_json(f"jc_fresh2/a1e-07_q{q}_p{num_pulses}_chi{chi}_sq{sq}_delta{delta}/amplitudes",  amp, q, nc, nq, num_pulses)
+#                         amp_json = generate_amp_jc_json(f"jc_base/a1e-07_q{q}_p{num_pulses}_sq{sq}/amplitudes",  amp, q, nc, nq, num_pulses)
+#                         print(amp_json)
+#                         show_amp(amp_json, amp, q, sq, chi)
 
-# amp_json = generate_amp_json("new_runs/amplitudes", "e", num_pulses, amp, q, n)
-# amp_json = generate_amp_json("new_runs/amplitudes", "g", num_pulses, amp, q, n)
+num_pulses = 192
+amp = 0.002
+# amp = 0.0001
+q = 4
+n = 4
+nc = 5
+nq = 2
+amp_json = generate_amp_json("sin_test3/amplitudes", "e", num_pulses, amp, q, n)
 # print(amp_json)
-# show_amp_json_dispersive(amp_json)
+show_amp_json_dispersive(amp_json)
+amp_json = generate_amp_json("sin_test3/amplitudes", "g", num_pulses, amp, q, n)
+show_amp_json_dispersive(amp_json)

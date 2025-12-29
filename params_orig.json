@@ -1,0 +1,12 @@
+{
+    "final_t": 192,
+    "multiplier": 4,
+    "sigma": 48,
+    "timestep": 1,
+    "chi": -2.79e-06,
+    "amplitude": 1e-04,
+    "q_max": 7,
+    "max_target": 6,
+    "num_pulses": 192,
+    "out_dir": "orig_revamped_results"
+}

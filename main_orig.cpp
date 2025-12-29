@@ -17,6 +17,8 @@ using std::complex;
 // #define  MAX_STEP 14
 #define  MAX_TARGET 8
 #define MAX_Q 10
+#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846
 
 
 
@@ -33,8 +35,8 @@ int main(int argc, char* argv[]) {
 
     //TODO: notice that amp is double of the value to put in antiSymSim
     // initial values
-    double amplitude = 0.02;
-    int q_max = 12; 
+    double amplitude = 0.00001;
+    int q_max = 8; 
     
     if(argc > 1){
         amplitude = std::stod(argv[1]);
@@ -91,9 +93,9 @@ int main(int argc, char* argv[]) {
     for (int qubit = 0; qubit <=1; qubit++){
 
         //loop over all times
-        for (int i = 191; i < times.size(); i++) { //TODO: i=0
-            // t = times[i];
-            t = 192;
+        for (int i = 0; i < times.size(); i++) { //TODO: i=0
+            t = times[i];
+            // t = 192;
             
             //print time
             std::cout << std::endl << "Main-Time: " << t << std::endl;
@@ -192,7 +194,7 @@ int main(int argc, char* argv[]) {
                     // std::cout << coefficients.size() << std::endl; 
                     for (const auto& coefficient : coefficients) {
                         
-                        q_amp += cal_divdiff(coefficient, t, q, qubit, chi, omega, target);
+                        q_amp += cal_divdiff_orig(coefficient, t, q, qubit, chi, omega, target);
                     }
                     //clear divdiff
                     divdiff_clear_up();
@@ -209,6 +211,9 @@ int main(int argc, char* argv[]) {
                     std::cout << "Q: " << q << std::endl;
                     std::cout << "Q_amp: " << q_amp.real().get_double() << " + " << q_amp.imag().get_double() << "i" << std::endl;
 
+                    
+
+                    divdiff_init();
                     q_amp *= energy_coefficient_amp; 
 
                     // print the q amplitude
@@ -222,6 +227,8 @@ int main(int argc, char* argv[]) {
                     
                     //add to total amp
                     total_amp += q_amp;
+                    divdiff_clear_up();
+
                     // total_amp.imag() += q_amp.imag();
                 }
 
@@ -256,6 +263,7 @@ int main(int argc, char* argv[]) {
             double norm = 0;
             ExExFloat Ex_norm;
             Ex_norm = 0;
+            divdiff_init();
             for (const auto& amp : transition_amplitudes) {
                 Ex_norm += amp.real() * amp.real() + amp.imag() * amp.imag();
             }
@@ -263,7 +271,7 @@ int main(int argc, char* argv[]) {
             for (auto& amp : transition_amplitudes) {
                 amp = amp / norm;
             }
-            
+            divdiff_clear_up();
             all_transition_amplitudes[qubit].push_back(transition_amplitudes);
             // if (qubit == 0){
             //     all_transition_amplitudes_g.push_back(transition_amplitudes);
@@ -272,7 +280,7 @@ int main(int argc, char* argv[]) {
             // }
             // all_transition_amplitudes.push_back(transition_amplitudes);
 
-            std::cout << std::endl << std::endl;
+            std::cout << "end of time loop" << std::endl << std::endl;
         
         //end of time loop
         }
@@ -298,6 +306,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        cout << "Writing JSON file for qubit " << qubit << endl;
         // Assuming all_transition_amplitudes is a vector<vector<complex<double>>>
         nlohmann::json j;
         for (const auto& vec : all_transition_amplitudes[qubit]) {
@@ -309,6 +318,7 @@ int main(int argc, char* argv[]) {
         }
 
         std::string filename;
+        cout << "Writing JSON file for qubit " << qubit << std::endl;
         if (qubit == 0){
             filename = "amplitudes_g_chg_amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + ".json";
         }else{

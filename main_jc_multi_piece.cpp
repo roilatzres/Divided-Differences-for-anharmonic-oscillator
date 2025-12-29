@@ -10,7 +10,7 @@
 #include "include/json-develop/single_include/nlohmann/json.hpp"
 #include <string>
 #include <chrono>
-#include "include/cnpy/cnpy.h"
+// #include "include/cnpy/cnpy.h"
 
 // #include "main_orig.h"
 
@@ -149,7 +149,7 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double sample_t,
 
                     std::ifstream infile_q_amp(q_amp_filename);
                     if (infile_q_amp) {
-                        auto q_amp_tuple_vec = load_binary_q_amp_tuple(q_amp_filename);
+                        auto q_amp_tuple_vec = load_binary_q_amp_tuple_jc(q_amp_filename);
                         
                         divdiff_init();
                         for(auto q_amp_tuple : q_amp_tuple_vec){
@@ -254,7 +254,7 @@ vector<vector<vector<complex_Ex>>> solve_for_t(double sample_t,
                         q_amp.real += res.real * std::get<0>(coefficient) * pow(amplitude, std::get<3>(coefficient).cavity) * pow(coupling, std::get<3>(coefficient).qubit);
                         q_amp.imag += res.imag * std::get<0>(coefficient) * pow(amplitude, std::get<3>(coefficient).cavity) * pow(coupling, std::get<3>(coefficient).qubit);
                     }
-                    save_binary_q_amp_tuple(q_amp_tuple_vec, q_amp_filename);
+                    save_binary_q_amp_tuple_jc(q_amp_tuple_vec, q_amp_filename);
 
                     total_amp.real += q_amp.real.get_double();
                     total_amp.imag += q_amp.imag.get_double();
@@ -496,44 +496,44 @@ void save_all_state_ta_to_json(
     }
 }
 
-// Convert your nested vectors to a contiguous std::complex<double> buffer and save as .npy
-void save_all_transition_amplitudes_npy(
-    std::vector<std::vector<std::vector<std::vector<complex_Ex>>>>& all_state_ta,
-    int num_pulses,
-    int max_target_qubit,
-    int sample_t,               // == final_t / num_pulses
-    int max_target_cavity,
-    const std::string& filename // e.g. "amplitudes.npy"
-) {
-    using cd = std::complex<double>;
+// // Convert your nested vectors to a contiguous std::complex<double> buffer and save as .npy
+// void save_all_transition_amplitudes_npy(
+//     std::vector<std::vector<std::vector<std::vector<complex_Ex>>>>& all_state_ta,
+//     int num_pulses,
+//     int max_target_qubit,
+//     int sample_t,               // == final_t / num_pulses
+//     int max_target_cavity,
+//     const std::string& filename // e.g. "amplitudes.npy"
+// ) {
+//     using cd = std::complex<double>;
 
-    // Shape: (P, Nq, T, Nc)
-    const size_t P  = static_cast<size_t>(num_pulses);
-    const size_t Nq = static_cast<size_t>(max_target_qubit);
-    const size_t T  = static_cast<size_t>(sample_t);
-    const size_t Nc = static_cast<size_t>(max_target_cavity);
+//     // Shape: (P, Nq, T, Nc)
+//     const size_t P  = static_cast<size_t>(num_pulses);
+//     const size_t Nq = static_cast<size_t>(max_target_qubit);
+//     const size_t T  = static_cast<size_t>(sample_t);
+//     const size_t Nc = static_cast<size_t>(max_target_cavity);
 
-    std::vector<size_t> shape = {P, Nq, T, Nc};
-    const size_t total = P * Nq * T * Nc;
+//     std::vector<size_t> shape = {P, Nq, T, Nc};
+//     const size_t total = P * Nq * T * Nc;
 
-    std::vector<cd> buf;
-    buf.reserve(total);
+//     std::vector<cd> buf;
+//     buf.reserve(total);
 
-    // Fill in C-contiguous (row-major) order: ((((p)*Nq + q)*T + t)*Nc + c)
-    for (size_t p = 0; p < P; ++p) {
-        for (size_t q = 0; q < Nq; ++q) {
-            for (size_t t = 0; t < T; ++t) {
-                for (size_t c = 0; c < Nc; ++c) {
-                    complex_Ex& a = all_state_ta[p][q][t][c];
-                    buf.emplace_back(a.real.get_double(), a.imag.get_double());
-                }
-            }
-        }
-    }
+//     // Fill in C-contiguous (row-major) order: ((((p)*Nq + q)*T + t)*Nc + c)
+//     for (size_t p = 0; p < P; ++p) {
+//         for (size_t q = 0; q < Nq; ++q) {
+//             for (size_t t = 0; t < T; ++t) {
+//                 for (size_t c = 0; c < Nc; ++c) {
+//                     complex_Ex& a = all_state_ta[p][q][t][c];
+//                     buf.emplace_back(a.real.get_double(), a.imag.get_double());
+//                 }
+//             }
+//         }
+//     }
 
-    // Write a single .npy (uncompressed, fastest to load in Python)
-    cnpy::npy_save(filename, buf.data(), shape, "w");  // "w" = overwrite
-}
+//     // Write a single .npy (uncompressed, fastest to load in Python)
+//     cnpy::npy_save(filename, buf.data(), shape, "w");  // "w" = overwrite
+// }
 
 
 
@@ -669,14 +669,14 @@ int main(int argc, char* argv[]) {
         "_nq" + std::to_string(max_target_qubit) +
         "_p" + std::to_string(num_pulses) + ".npy";
 
-    save_all_transition_amplitudes_npy(
-        all_state_ta,
-        num_pulses,
-        max_target_qubit,
-        static_cast<int>(sample_t),
-        max_target_cavity,
-        npy_path
-    );
+    // save_all_transition_amplitudes_npy(
+    //     all_state_ta,
+    //     num_pulses,
+    //     max_target_qubit,
+    //     static_cast<int>(sample_t),
+    //     max_target_cavity,
+    //     npy_path
+    // );
 
     std::cout << "Done saving to " << npy_path << std::endl;
     

@@ -3,7 +3,11 @@ echo "Compiling the program..."
 
 # Compile the program
 
-g++ main_jc_multi_piece.cpp -Idlib/dlib -std=c++17 -O2 -o main_jc_multi_piece
+g++ main_jc_multi_piece.cpp include/cnpy/cnpy.cpp -Iinclude/cnpy -Idlib/dlib -I"%CONDA_PREFIX%\Library\include" -L"%CONDA_PREFIX%\Library\lib" -lz -std=c++17 -O2 -o main_jc_multi_piece.exe
+
+
+g++ main_const_pulse_multi_piece_remake.cpp -std=c++17 -O2 -o main_const_pulse_multi_piece_remake_eem
+# g++ main_jc_multi_piece.cpp -Idlib/dlib -std=c++17 -O2 -o main_jc_multi_piece
 # g++ main_const_pulse_multi_piece_test.cpp -Idlib/dlib -std=c++17 -O2 -o main_const_pulse_multi_piece_test_eem
 # g++ main_sin_pulse_multi_piece.cpp -Idlib/dlib -std=c++17 -O2 -o main_sin_pulse_multi_piece_eem
 

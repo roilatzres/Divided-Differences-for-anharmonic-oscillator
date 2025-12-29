@@ -1,0 +1,19 @@
+{
+    "final_t": 19200,
+    "multiplier": 4,
+    "sigma": 48,
+    "timestep": 1,
+    "chi": -2.79e-06,
+    "alpha": 0.002,
+    "delta": 0.02,
+    "amplitude": 1e-07,
+    "q_max": 4,
+    "max_target_cavity": 4,
+    "max_target_qubit": 2,
+    "start_state_cavity": 0,
+    "start_state_qubit": 0,
+    "num_pulses": 960,
+    "out_dir": "jc_base/a1e-07_q4_p960_sq0/",
+    "max_total_cavity": 300,
+    "max_total_qubit": 2
+}

@@ -20,14 +20,14 @@ using std::complex;
 #define M_PI 3.14159265358979323846
 
 
-//function to print complex_ex
-void print_complex_Ex(complex_Ex a){
-    a.real.print();
-    std::cout << "+ ";
-    a.imag.print();
-    std::cout << "i" << std::endl; 
-    std::cout << std::endl;
-}
+// //function to print complex_ex
+// void print_complex_Ex(complex_Ex a){
+//     a.real.print();
+//     std::cout << "+ ";
+//     a.imag.print();
+//     std::cout << "i" << std::endl; 
+//     std::cout << std::endl;
+// }
 
 
 // int main(int argc, char* argv[]) {
@@ -422,9 +422,9 @@ int main(int argc, char* argv[]) {
     
             std::string filename;
             if (qubit == 0){
-                filename = "sin_pulse_runs/amplitudes_g_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + "_p" + std::to_string(num_pulses)+ ".json";
+                filename = "sin_test4/amplitudes_g_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + "_p" + std::to_string(num_pulses)+ ".json";
             }else{
-                filename = "sin_pulse_runs/amplitudes_e_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + "_p" + std::to_string(num_pulses)+ ".json";
+                filename = "sin_test4/amplitudes_e_chg_pulse" + std::to_string(state) + "amp" + std::to_string(amplitude) + "_q" + std::to_string(q_max) + "_n" + std::to_string(max_target) + "_p" + std::to_string(num_pulses)+ ".json";
             }
             std::ofstream o(filename);
             o << j << std::endl;
