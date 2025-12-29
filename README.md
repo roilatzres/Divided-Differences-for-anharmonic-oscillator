@@ -17,20 +17,20 @@ Additionally, this project investigates the inherent **time-memory trade-off** o
 ## Background & References
 This work builds upon the foundational research by Asaf Diringer and Itay Hen.
 
-1. **The Anti-Symmetric Pulse:** *Derivation of the pulse used to drive the system.* > [Insert Author, Title, Journal/Link (Year)]
+1. **The Anti-Symmetric Pulse:** *Derivation of the pulse used to drive the system.* > Diringer_2024, [Conditional-not Displacement: Fast Multioscillator Control with a Single Qubit](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.14.011055)]
 
-2. **The Simulation Method:** *Derivation of the divided differences method implemented in this code.* > [Insert Author, Title, Journal/Link (Year)]
+2. **The Simulation Method:** *Derivation of the divided differences method implemented in this code.* > Amir Kalev and Itay Hen, [An integral-free representation of the Dyson series using divided differences](https://iopscience.iop.org/article/10.1088/1367-2630/ac2dae)
 
 ## Results
 This repository provides the first successful implementation of the PMR simulation method for this specific Hamiltonian. We successfully replicated the expected theoretical dynamics for the AS pulse.
 
-![Simulation Phase Space](path/to/phase_space_image.png)
+![Simulation Phase Space](figures/simulation_displacement.png)
 *Fig 1: Phase space trajectory showing the conditional displacement achieved with the AS pulse.*
 
 ### Benchmarking
 To validate the accuracy of the new method, we benchmarked our simulation results against the standard **QuTiP** solver. The comparison demonstrates strong agreement between the two methods.
 
-![Comparison to QuTiP](path/to/comparison_image.png)
+![Comparison to QuTiP](figures/simulation_breakdown.png)
 *Fig 2: Comparison of simulation accuracy against the QuTiP solver benchmark.*
 
 In the thesis, we also derive the required **expansion order** ($q$) needed for convergence. This derivation allows for pre-calculation of computational costs before runtime.

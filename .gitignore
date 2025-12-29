@@ -7,9 +7,12 @@ amplitudes_e_chg_amp1.json
 include/permutations/*
 include/parms/*
 include/q_amp/*
-amplitudes*
+# amplitudes*
 sin_pulse_log/*
 ta for base/*
 optimizer_runs/*
 __pycache__/*
 optimier_runs/*
+# data_orig/*
+# data_TID*.log
+run*
