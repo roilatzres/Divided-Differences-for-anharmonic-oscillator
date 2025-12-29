@@ -2,6 +2,22 @@ import json
 import numpy as np
 from scipy.linalg import expm
 from scipy.optimize import minimize
+import argparse
+
+
+
+# — parse CLI args —
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--n_steps",
+    type=int,
+    default=10,
+    help="number of (x,φ,θ) triples per optimization run"
+)
+args = parser.parse_args()
+
+n_steps = args.n_steps
+
 
 # === 1. load coefficient‐matrices from JSON ===
 def load_C(filename):
@@ -12,22 +28,25 @@ def load_C(filename):
     Nc  = len(data[0][0])
     assert Nc == len(data[0][0][0]), "cavity matrices must be square"
     C = np.zeros((T, d1, Nc, Nc), dtype=np.complex128)
-    for t in range(T):
-        for q in range(d1):
-            for i in range(Nc):
-                for j in range(Nc):
+    for t in range(T): # time index
+        for q in range(d1): # q index
+            for i in range(Nc): #start state index
+                for j in range(Nc): # target state index
                     r = data[t][q][i][j]["real"]
                     im= data[t][q][i][j]["imag"]
                     C[t, q, i, j] = r + 1j*im
     return C
 
 # load your two gate‐sets (replace with your actual file paths)
-Ce = load_C("all_coefs_e.json")    # coefficients for Ue
-Cg = load_C("all_coefs_g.json")    # coefficients for Ug
+Ce = load_C("all_coefs_e_0.010000_q18.json")    # coefficients for Ue
+Cg = load_C("all_coefs_g_0.010000_q18.json")    # coefficients for Ug
+
+# Ce = load_C("all_coefs_e_q14_n10_p4.json")    # coefficients for Ue
+# Cg = load_C("all_coefs_g_q14_n10_p4.json")    # coefficients for
 
 # === 2. dimensions ===
 T, d1, dim_cavity, _ = Cg.shape
-n_steps     = 10
+# n_steps     = 9
 dim_qubit   = 2
 dim_total   = dim_qubit * dim_cavity
 
@@ -72,15 +91,25 @@ start[0] = 1.0  # |g>⊗|0>
 # target /= np.linalg.norm(target)
 # 1) build the cavity Fock projector |n><n|
 
-n = 1  # the Fock level you want
-fock_n = np.zeros((dim_cavity,), dtype=complex)
-fock_n[n] = 1.0
-P_cav = np.outer(fock_n, fock_n.conj())    # shape (dim_cavity,dim_cavity)
+# n = 1  # the Fock level you want
+# fock_n = np.zeros((dim_cavity,), dtype=complex)
+# fock_n[n] = 1.0
+# P_cav = np.outer(fock_n, fock_n.conj())    # shape (dim_cavity,dim_cavity)
 
-# 2) lift to total space
-P_total = np.kron(np.eye(dim_qubit, dtype=complex), P_cav)
-# now P_total has shape (dim_total, dim_total)
+# # 2) lift to total space
+# P_total = np.kron(np.eye(dim_qubit, dtype=complex), P_cav)
+# # now P_total has shape (dim_total, dim_total)
 
+
+# Build the full target state |g>⊗|1>
+n_fock= 1  # desired cavity Fock level
+state_cavity = 0 # |g> = 0, |e> = 1
+target = np.zeros(dim_total, dtype=complex)
+target_index = state_cavity * dim_cavity + n_fock # |g⟩ = 0, Fock level = 1
+target[target_index] = 1.0
+
+# Now build the projector onto that pure state
+P_total = np.outer(target, target.conj())
 
 # === 8. objective over (x_i, φ_i, θ_i) for each step ===
 num_vars = n_steps * 3  # each step has (x, φ, θ)
@@ -107,10 +136,11 @@ for i in range(n_steps):
     x0[3*i + 2] = np.pi/4    # θ_i
 
 bounds = []
+x_max = 0.02
 for _ in range(n_steps):
-    bounds += [(None, None),    # x_i
+    bounds += [(-x_max, x_max),    # x_i
                (0.0, 2*np.pi),  # φ_i
-               (0.0, 2*np.pi)]  # θ_i
+               (0.0, np.pi)]  # θ_i
 
 # === 10. run optimization ===
 res = minimize(
@@ -118,7 +148,8 @@ res = minimize(
     x0,
     method='L-BFGS-B',
     bounds=bounds,
-    options={'disp': True}
+    # options={'disp': True}
+    options={'maxfun': 50000, 'maxiter': 5000, 'maxls':   100, 'disp': True}
 )
 
 # === 11. unpack & report ===
@@ -129,7 +160,7 @@ opt_theta = opt[2::3]
 opt_fid   = 1 - res.fun
 
 print("Optimized x values:     ", opt_x)
-print("Optimized φ values (rad):", opt_phi)
-print("Optimized θ values (rad):", opt_theta)
+print("Optimized phi values (rad):", opt_phi)
+print("Optimized theta values (rad):", opt_theta)
 print("Final fidelity:          ", opt_fid)
 print("Success?                 ", res.success)

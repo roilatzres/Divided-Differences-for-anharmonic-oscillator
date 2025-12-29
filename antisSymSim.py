@@ -95,7 +95,7 @@ times = np.linspace(0, int((tfinal-timestep)/2), int((tfinal/timestep)/2))
 opts = Options(store_final_state=True, nsteps = len(times) * 100, max_step = 0.01)
 
 is_cut_tail_antisym = False
-amp = 0.001
+amp = 0.015  / np.sqrt(2)
 # condisp_pulse1 = amp *  np.sin((times) * detuning) * np.exp(-1j*omega_shift*times) 
 condisp_pulse1 = amp *  np.exp(-1j*omega_shift*times) 
 condisp_pulse2 = - condisp_pulse1
@@ -221,6 +221,8 @@ plt.plot((res2.expect[0].real)*2*np.sqrt(2),(res2.expect[0].imag)*2*np.sqrt(2), 
 plt.plot((res2.expect[1].real)*2*np.sqrt(2), (res2.expect[1].imag)*2*np.sqrt(2), label = 'e')
 plt.legend()
 
+print("\n")
+print("FULL TIME")
 print("amp:", amp) 
 print("show_trans_amp: ", amp*2)
 # print('g:', res2.expect[0][-1].real*2*np.sqrt(2), res2.expect[0][-1].imag*2*np.sqrt(2))

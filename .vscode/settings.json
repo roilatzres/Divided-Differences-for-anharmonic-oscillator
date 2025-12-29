@@ -72,8 +72,17 @@
         "ranges": "cpp",
         "span": "cpp",
         "semaphore": "cpp",
-        "stop_token": "cpp"
+        "stop_token": "cpp",
+        "charconv": "cpp",
+        "format": "cpp",
+        "future": "cpp",
+        "cinttypes": "cpp",
+        "typeindex": "cpp"
     },
     "cmake.configureOnOpen": false,
-    "C_Cpp.default.compilerPath": "C:\\msys64\\ucrt64\\bin\\gcc.exe"
+    "C_Cpp.default.compilerPath": "C:\\msys64\\ucrt64\\bin\\gcc.exe",
+    "cSpell.words": [
+        "qubit"
+    ],
+    "git.ignoreLimitWarning": true
 }

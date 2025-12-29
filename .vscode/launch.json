@@ -5,12 +5,12 @@
             "name": "C++ Debug",
             "type": "cppdbg",
             "request": "launch",
-            // "program": "C:\\Users\\Latzres\\OneDrive - Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator\\main.exe", // Escaped backslashes
-            "program": "${workspaceFolder}\\main.exe", // Escaped backslashes
-            "args": ["0.05", "40"],
+            "program": "C:\\Users\\Latzres\\OneDrive-Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator\\main_orig.exe", // Escaped backslashes
+            // "program": "${workspaceFolder}\\main_orig", // Escaped backslashes
+            "args": [],
             "stopAtEntry": false,
-            // "cwd": "C:\\Users\\Latzres\\OneDrive - Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator", // Escaped backslashes
-            "cwd": "${workspaceFolder}", // Escaped backslashes
+            "cwd": "C:\\Users\\Latzres\\OneDrive-Technion\\RoeeL\\Divided-Differences-for-anharmonic-oscillator", // Escaped backslashes
+            // "cwd": "${workspaceFolder}", // Escaped backslashes
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

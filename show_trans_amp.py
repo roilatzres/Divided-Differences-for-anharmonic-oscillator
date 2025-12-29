@@ -112,7 +112,7 @@ def generate_amp_jc_json(prefix, amp, q, nc, nq, num_pulses):
 
 # show only half of the amplitudes
 
-def show_amp(amp_json, amp):
+def show_amp(amp_json, amp, q_max, sq, chi):
     """
     Show transition amplitudes from single JSON files.
     """
@@ -136,7 +136,7 @@ def show_amp(amp_json, amp):
     num_cavity = len(data[0][0][0])
     print(f"num_pulses: {num_pulses}, num_qubit: {num_qubit}, num_inner_time: {num_inner_time}, num_cavity: {num_cavity}")
     
-    dir_path = f"plots_folder/a{amp}_num_p{num_pulses}_nc{num_cavity}_nq{num_qubit}"
+    dir_path = f"plots_folder_base/a{amp}_qmax{q_max}_num_p{num_pulses}_nc{num_cavity}_nq{num_qubit}_sq{sq}"
     os.makedirs(dir_path,  exist_ok=True)
     
     # all_transition_amplitudes = [[[[[complex(amp['real'], amp['imag']) for amp in cavity] 
@@ -160,6 +160,7 @@ def show_amp(amp_json, amp):
     nq = len(all_transition_amplitudes[0])
     # print(q_plot)
 
+    print("finished loading amplitudes")
     # create Qobj for each time frame in the transition amplitudes
     psi_t = []
     for cn_t in all_transition_amplitudes:
@@ -230,8 +231,21 @@ def show_amp(amp_json, amp):
     plt.title("Cavity Amplitude Trajectories")
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(dir_path, "avity_amplitude_trajectories.png"))
+    plt.savefig(os.path.join(dir_path, "cavity_amplitude_trajectories.png"))
     plt.show()
+
+    
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(alpha_t_cond_g[:-2000], label='Ground State', color='blue')
+    # plt.plot(alpha_t_cond_e[:-2000], label='Excited State', color='red')
+    # plt.xlabel("Time Step")
+    # plt.ylabel("Cavity Amplitude (alpha_t)")
+    # plt.title("Cavity Amplitude Trajectories")
+    # plt.legend()
+    # plt.grid(True)
+    # plt.savefig(os.path.join(dir_path, "avity_amplitude_trajectories.png"))
+    # plt.show()
+
 
     # plot the real and imaginary parts of alpha_t_cond_g over phase space
     plt.figure(figsize=(10, 6))
@@ -251,7 +265,7 @@ def show_amp(amp_json, amp):
     plt.savefig(os.path.join(dir_path, "phase_space_g.png"))
     plt.show()
 
-
+        
     # plot the real and imaginary parts of alpha_t_cond_e over phase space
     plt.figure(figsize=(10, 6))
     plt.plot(np.real(alpha_t_cond_e), np.imag(alpha_t_cond_e), label='Excited State', color='red')
@@ -275,66 +289,133 @@ def show_amp(amp_json, amp):
     plt.show()
 
 
-    #  plot the real and imaginary parts of alpha_t_cond_g over phase space
-    #color every x seconds in different color
+    # #  plot the real and imaginary parts of alpha_t_cond_g over phase space
+    # #color every x seconds in different color
+    # plt.figure(figsize=(10, 6))
+    # time_interval = num_inner_time  # Change color every x time steps
+    # colors = ['red', 'blue', 'green', 'purple']
+    # for i in range(len(alpha_t_cond_e)//4):
+    #     start_idx = i * time_interval
+    #     end_idx = min((i + 1) * time_interval, len(alpha_t_cond_e))
+    #     plt.plot(np.real(alpha_t_cond_e[start_idx:end_idx]), np.imag(alpha_t_cond_e[start_idx:end_idx]), color=colors[i%4])
+    # plt.xlabel("Re(alpha_t)")
+    # plt.ylabel("Im(alpha_t)")
+    # plt.title("Cavity Amplitude Phase Space Trajectories with Time Segments")
+    # plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), label='Time Segments')
+    # plt.grid(True)
+    # plt.savefig(os.path.join(dir_path, "phase_space_e_sample.png"))
+    # plt.show()
+
+    if(sq == 1):
+        alpha_for_disp = alpha_t_cond_e
+    if(sq == 0):
+        alpha_for_disp = alpha_t_cond_g
+    
+    # plot first quarter of the real and imaginary parts of alpha_for_disp over phase space
     plt.figure(figsize=(10, 6))
-    time_interval = num_inner_time  # Change color every x time steps
-    num_segments = len(alpha_t_cond_g) // time_interval + 1
-    colors = ['red', 'blue', 'green', 'purple']
-    for i in range(num_inner_time*40):
-        start_idx = i * time_interval
-        end_idx = min((i + 1) * time_interval, len(alpha_t_cond_g))
-        plt.plot(np.real(alpha_t_cond_g[start_idx:end_idx]), np.imag(alpha_t_cond_g[start_idx:end_idx]), color=colors[i%4])
+    start_idx = 0
+    end_idx = len(alpha_for_disp) // 4
+    plt.plot(np.real(alpha_for_disp[start_idx:end_idx]), np.imag(alpha_for_disp[start_idx:end_idx]), color='purple')
+    #mark statr and end
+    plt.scatter(np.real(alpha_for_disp[start_idx]), np.imag(alpha_for_disp[start_idx]), color='green', marker='o', s=100, label='Start')
+    plt.scatter(np.real(alpha_for_disp[end_idx-1]), np.imag(alpha_for_disp[end_idx-1]), color='red', marker='*', s=150, label='End')
     plt.xlabel("Re(alpha_t)")
     plt.ylabel("Im(alpha_t)")
-    plt.title("Cavity Amplitude Phase Space Trajectories with Time Segments")
-    plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), label='Time Segments')
+    plt.title("Cavity Amplitude Phase Space Trajectories (First Quarter)")
     plt.grid(True)
+    plt.savefig(os.path.join(dir_path, "phase_space_first_quarter.png"))
     plt.show()
-    plt.savefig(os.path.join(dir_path, "phase_space_g_sample.png"))
 
+
+    # plot second quarter of the real and imaginary parts of alpha_for_disp over phase space
+    plt.figure(figsize=(10, 6))
+    start_idx = len(alpha_for_disp) // 4
+    end_idx = len(alpha_for_disp) // 2
+    plt.plot(np.real(alpha_for_disp[start_idx:end_idx]), np.imag(alpha_for_disp[start_idx:end_idx]), color='blue')
+    # mark statr and end
+    plt.scatter(np.real(alpha_for_disp[start_idx]), np.imag(alpha_for_disp[start_idx]), color='green', marker='o', s=100, label='Start')
+    plt.scatter(np.real(alpha_for_disp[end_idx-1]), np.imag(alpha_for_disp[end_idx-1]), color='red', marker='*', s=150, label='End')
+    plt.xlabel("Re(alpha_t)")
+    plt.ylabel("Im(alpha_t)")
+    plt.title("Cavity Amplitude Phase Space Trajectories (Second Quarter)")
+    plt.grid(True)
+    plt.savefig(os.path.join(dir_path, "phase_space_second_quarter.png"))
+    plt.show()
+
+    # plot third quarter of the real and imaginary parts of alpha_for_disp over phase space
+    plt.figure(figsize=(10, 6))
+    start_idx = len(alpha_for_disp) // 2
+    end_idx = len(alpha_for_disp) * 3 // 4
+    plt.plot(np.real(alpha_for_disp[start_idx:end_idx]), np.imag(alpha_for_disp[start_idx:end_idx]), color='green')
+    # mark statr and end
+    plt.scatter(np.real(alpha_for_disp[start_idx]), np.imag(alpha_for_disp[start_idx]), color='green', marker='o', s=100, label='Start')
+    plt.scatter(np.real(alpha_for_disp[end_idx-1]), np.imag(alpha_for_disp[end_idx-1]), color='red', marker='*', s=150, label='End')
+    plt.xlabel("Re(alpha_t)")
+    plt.ylabel("Im(alpha_t)")
+    plt.title("Cavity Amplitude Phase Space Trajectories (Third Quarter)")
+    plt.grid(True)
+    plt.savefig(os.path.join(dir_path, "phase_space_third_quarter.png"))
+    plt.show()
+
+    # plot fourth quarter of the real and imaginary parts of alpha_for_disp over phase space
+    plt.figure(figsize=(10, 6))
+    start_idx = len(alpha_for_disp) * 3 // 4
+    end_idx = len(alpha_for_disp)
+    plt.plot(np.real(alpha_for_disp[start_idx:end_idx]), np.imag(alpha_for_disp[start_idx:end_idx]), color='red')
+    # mark statr and end
+    plt.scatter(np.real(alpha_for_disp[start_idx]), np.imag(alpha_for_disp[start_idx]), color='green', marker='o', s=100, label='Start')
+    plt.scatter(np.real(alpha_for_disp[end_idx-1]), np.imag(alpha_for_disp[end_idx-1]), color='red', marker='*', s=150, label='End')
+    plt.xlabel("Re(alpha_t)")
+    plt.ylabel("Im(alpha_t)")
+    plt.title("Cavity Amplitude Phase Space Trajectories (Fourth Quarter)")
+    plt.grid(True)
+    plt.savefig(os.path.join(dir_path, "phase_space_fourth_quarter.png"))
+    plt.show()
+    print("finished plots")
 
     
     
-    
 
 
 
-amplitudes = [5e-7, 1e-6, 2e-6, 5e-6]
-q_max_values = [3, 4, 5, 6]
-num_pulses_list = [1920, 3840]
+amplitudes = [0.0000001]
+q_max_values = [4,7]
+num_pulses_list = [960]
+nc_list = [3, 4]
+chi_list = [-2.79e-6]
+sq_list = [0,1]
 
-
-num_pulses = 1920
-amp = 0.0000001
+num_pulses = 9600
+amp = 0.000000
 # amp = 0.0001
-q = 4
+q = 5
 # n = 30
-nc = 2
+nc = 5
 nq = 2
 # amp_json = generate_amp_jc_json("jc_runs-neg-alpha/amplitudes",  amp, q, nc, nq, num_pulses)
 # amp_json = generate_amp_jc_json("jc_no_amp/amplitudes",  amp, q, nc, nq, num_pulses)
 # amp_json = generate_amp_jc_json("jc_runs/amplitudes",  amp, q, nc, nq, num_pulses)
 # amp_json = generate_amp_jc_json("jc_runs/a1e-05_q6_p6400/amplitudes",  amp, q, nc, nq, num_pulses)
-# amp_json = generate_amp_jc_json(f"jc_runs/a1e-05_q{q}_p{num_pulses}/amplitudes",  amp, q, nc, nq, num_pulses)
+# amp_json = generate_amp_jc_json(f"jc_runs/a2e-07_q{q}_p{num_pulses}/amplitudes",  amp, q, nc, nq, num_pulses)
 # amp_json = generate_amp_jc_json(f"jc_runs/a0.0001_q{q}_p{num_pulses}/amplitudes",  amp, q, nc, nq, num_pulses)
 # amp_json = generate_amp_jc_json("jc_runs_py_scrupt/a0.0001_q5_p192/amplitudes",  amp, q, nc, nq, num_pulses)
 # amp_json = generate_amp_jc_json("jc_tests/amplitudes",  amp, q, nc, nq, num_pulses)
 # print(amp_json)
-# show_amp(amp_json, amp)
+# show_amp(amp_json, amp, q)
 
 for amp in amplitudes:
     for q in q_max_values:
         for num_pulses in num_pulses_list:
-            amp_json = generate_amp_jc_json(f"jc_runs/a{amp}_q{q}_p{num_pulses}/amplitudes",  amp, q, nc, nq, num_pulses)
-            print(amp_json)
-            show_amp(amp_json, amp)
+            for nc in nc_list:
+                for chi in chi_list:
+                    for sq in sq_list:
+                        # amp_json = generate_amp_jc_json(f"fresh/0_0/a{amp}_q{q}_p{num_pulses}/amplitudes",  amp, q, nc, nq, num_pulses)
+                        # amp_json = generate_amp_jc_json(f"jc_fresh2/a1e-07_q{q}_p{num_pulses}_chi{chi}_sq{sq}_delta{delta}/amplitudes",  amp, q, nc, nq, num_pulses)
+                        amp_json = generate_amp_jc_json(f"jc_base/a1e-07_q{q}_p{num_pulses}_sq{sq}/amplitudes",  amp, q, nc, nq, num_pulses)
+                        print(amp_json)
+                        show_amp(amp_json, amp, q, sq, chi)
 
 # amp_json = generate_amp_json("new_runs/amplitudes", "e", num_pulses, amp, q, n)
 # amp_json = generate_amp_json("new_runs/amplitudes", "g", num_pulses, amp, q, n)
 # print(amp_json)
 # show_amp_json_dispersive(amp_json)
-
-
-
-

@@ -6,10 +6,9 @@
             "type": "shell",
             "command": "g++",
             "args": [
-                "-g",
-                "main.cpp",
+                "main_orig.cpp",
                 "-o",
-                "main"
+                "main_orig"
             ],
             "group": "build"
         },

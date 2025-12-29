@@ -1,9 +1,13 @@
-trans_amp_json\*
-output_lop\*
+trans_amp_json/*
+output_lop/*
 main.cpp
 output_g_chg_amp1.txt
 amplitudes_g_chg_amp.json
 amplitudes_e_chg_amp1.json
-include\permutations
-include\parms
+include/permutations/*
+include/parms/*
+include/q_amp/*
 amplitudes*
+sin_pulse_log/*
+ta for base/*
+optimizer_runs/*
