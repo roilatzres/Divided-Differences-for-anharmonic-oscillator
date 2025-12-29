@@ -42,9 +42,55 @@ In the thesis, we also derive the required **expansion order** ($q$) needed for 
 ### Prerequisites
 We recommend using the provided `project.yml` file to set up a consistent Conda environment for dependencies and compilation tools.
 
-```bash
-# Create the environment from the file
+#### Create the environment from the file
 conda env create -f project.yml
 
-# Activate the environment
+#### Activate the environment
 conda activate [env_name_inside_yml]
+
+### Compilation
+
+We provide a shell script to handle compilation. To compile the simulation executable:
+Bash
+
+#### Make the script executable
+chmod +x compile_multipiece_pulse.sh
+
+#### Run the compilation script
+./compile_multipiece_pulse.sh
+
+Note: You can modify the target source file inside compile_multipiece_pulse.sh if needed.
+
+#### Running the Simulation
+
+Once the executable is compiled, you can run it directly. Ensure that your configuration file (params.json) is in the same directory (or the path specified in your code).
+
+#### Bash
+
+./[your_executable_name]
+
+### Configuration
+
+The simulation is fully configurable via the params.json file. This allows you to modify physical and computational parameters without recompiling the code.
+
+#### Key Parameters:
+
+* Physical Parameters: Define the Hamiltonian terms, pulse duration, and drive strength.
+
+* Simulation Settings: Control the number of time steps, the expansion order (q), and the dimension of the Hilbert space.
+
+* Output: The simulation outputs a JSON file containing the calculated transition amplitudes. The destination directory for this output is also defined within params.json.
+
+## Future Work
+
+This simulation technique utilizes the Permutation Matrix Representation (PMR) to solve quantum dynamics. While demonstrated here on superconducting circuits, the method is applicable to a broad range of quantum systems.
+
+It is particularly effective for regimes characterized by:
+
+* Short Evolution Times: Where the propagator does not require massive expansion orders.
+
+* Weak Perturbations: Where the off-diagonal terms are small relative to the diagonal.
+
+* Sparse Transition Graphs: Where the Hamiltonian connectivity (d) is low.
+
+A key advantage of this framework is the analytic predictability of the computational cost. We provide a derivation that allows researchers to pre-estimate the required expansion order (q) based on the system parameters. This feature enables users to assess runtime feasibility and memory requirements before initiating costly high-performance computing tasks.

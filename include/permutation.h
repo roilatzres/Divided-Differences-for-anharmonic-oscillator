@@ -6,8 +6,8 @@
 #include <functional>
 #include <cmath>
 #include <complex>
-#include "dlib/dlib/optimization.h"
-#include "dlib/dlib/matrix.h"
+// #include "dlib/dlib/optimization.h"
+// #include "dlib/dlib/matrix.h"
 
 
 using std::vector;
@@ -27,37 +27,43 @@ struct complex_Ex{
 
 };
 
+//function to print complex_ex
+void print_complex_Ex(complex_Ex a){
+    a.real.print();
+    std::cout << "+ ";
+    a.imag.print();
+    std::cout << "i" << std::endl; 
+    std::cout << std::endl;
+}
+
 complex_Ex complex_mult(complex_Ex a, complex_Ex b){
-    divdiff_init();
     complex_Ex res;
-    //print res.real
     ExExFloat temp1 = a.real * b.real;
     ExExFloat temp2 = a.imag * b.imag;
-    // //print temp
-    // std::cout << "temp1: " << temp1.get_double() << std::endl;
-    // std::cout << "temp2: " << temp2.get_double() << std::endl;
-
-
     res.real = temp1 - temp2;
-    // //print res.real
-    // std::cout << "res.real: " << res.real.get_double() << std::endl;
-    
 
     ExExFloat temp3 = a.real * b.imag;
     ExExFloat temp4 = a.imag * b.real;
-    // //print temp
-    // std::cout << "temp3: " << temp3.get_double() << std::endl;
-    // std::cout << "temp4: " << temp4.get_double() << std::endl;
-
     res.imag = temp3 + temp4;
-    // //print res.imag
-    // std::cout << "res.imag: " << res.imag.get_double() << std::endl;
 
-    divdiff_clear_up();
 
     return res;
 }
 
+complex_Ex complex_mult(complex_Ex a, complex<double> b){
+    divdiff_init();
+    complex_Ex res;
+    ExExFloat temp1 = a.real * b.real();
+    ExExFloat temp2 = a.imag * b.imag();
+    res.real = temp1 - temp2;
+
+    ExExFloat temp3 = a.real * b.imag();
+    ExExFloat temp4 = a.imag * b.real();
+    res.imag = temp3 + temp4;
+
+
+    return res;
+}
 
 double factorial(unsigned int n) {
     if (n == 0)
@@ -305,7 +311,7 @@ std::tuple<vector<DivdiffElement>, double, int, vector<int>> cal_coefficient(vec
     beta.push_back(first_elem); 
 
     // iterate from end to start over the states and update the divdiff elements starting from the penultimate state
-    for (int i = states.size() - 2; i >= 0; --i) {
+    for (int i = states.size() - 2; i >= 0; --i) {//TODO: check direction of omega sum
         vector<DivdiffElement> temp_divdiff;
 
         // Update divdiff elements
@@ -374,10 +380,11 @@ std::tuple<double, int, vector<int>> cal_coefficient_const_pulse(vector<int> per
 }
 
 // Function to compute coefficients and divdiff elements for a given permutation with the jc hamiltonaian
-std::tuple<double, step, vector<step>> cal_coefficient_const_pulse_jc(vector<step> permutation, step start_state, double amp, double coupling) {
+std::tuple<double, step, vector<step>, step> cal_coefficient_const_pulse_jc(vector<step> permutation, step start_state, double amp, double coupling) {
     // Initialize divdiff elements, current state, and coefficient
     double energy_coefficient_real = 1;
     step current_state = start_state;
+    step count = {0,0};
     
     // initialize vector for all states in the permutation
     vector<step> states;
@@ -387,29 +394,184 @@ std::tuple<double, step, vector<step>> cal_coefficient_const_pulse_jc(vector<ste
                 
         // Update energy_coefficient_real
         if (permutation[i].cavity - current_state.cavity == 1 && permutation[i].qubit == current_state.qubit) { // a^dagger
-            energy_coefficient_real *= sqrt(current_state.cavity + 1) * amp ;
+            energy_coefficient_real *= sqrt(current_state.cavity + 1);
+            count.cavity += 1;
         }
         else if (permutation[i].cavity - current_state.cavity == -1 && permutation[i].qubit == current_state.qubit) { // a
-            energy_coefficient_real *= sqrt(current_state.cavity) * amp;
+            energy_coefficient_real *= sqrt(current_state.cavity);
+            count.cavity += 1;
         }
         else if (permutation[i].cavity - current_state.cavity == 1 && permutation[i].qubit - current_state.qubit == -1) { // a^dagger q
-            energy_coefficient_real *= sqrt(current_state.qubit * (current_state.cavity + 1)) * coupling;
+            energy_coefficient_real *= sqrt(current_state.qubit * (current_state.cavity + 1)) ;
+            count.qubit += 1;
         } 
         else if (permutation[i].cavity - current_state.cavity == -1 && permutation[i].qubit - current_state.qubit == 1) { // a q^dagger
-            energy_coefficient_real *= sqrt((current_state.qubit + 1) * current_state.cavity) * coupling;
+            energy_coefficient_real *= sqrt((current_state.qubit + 1) * current_state.cavity) ;
+            count.qubit += 1;
         }
         
         states.push_back(permutation[i]);
         current_state = permutation[i];
     }
 
-    return std::make_tuple(energy_coefficient_real, current_state, states);
+    return std::make_tuple(energy_coefficient_real, current_state, states, count);
 
 }
 
 
 
 /************** calculate divided differences for specific q and t****************/
+
+void cal_divdiff_aux_td(divdiffcomplex &d, const vector<DivdiffElement> &divdiff, const vector<int> &states, 
+    int *CurrentLength, int *num_elem, double t, int q, int qubit, double chi, double omega, int t_k, complex_Ex &sum_final_elements){
+    complex<double> j(0, 1);
+    
+    //first state
+    if (*CurrentLength == 0){
+        cout << "First state. CurrentLength: " << *CurrentLength << endl;
+        cout << "num_elem: " << *num_elem << endl;  
+        cout << "states size: " << states.size() << endl;
+
+        const auto curr_elem = divdiff[*num_elem];
+        
+        const double& beta_coefficient = curr_elem.coefficient;
+        const auto& element_omega = curr_elem.omega[*CurrentLength];
+        const auto& state_n = states[*CurrentLength];
+
+        // std::cout << "(" << element.energy << ", " << element.omega << ", " << element.chi << ", " << element.coefficient << ") ";
+
+        complex<double> n;
+        n = (-j * t * (state_n * chi * (qubit) + element_omega * omega ));
+        
+        // print n
+        std::cout << "n: " << n << std::endl;
+        cout << "Adding element to divdiffcomplex" << std::endl;
+        cout << "CurrentLength before adding: " << d.CurrentLength << std::endl;
+        
+        d.AddElement(n);
+        *CurrentLength += 1;
+
+        cout << "CurrentLength after adding: " << d.CurrentLength << endl;
+
+        cal_divdiff_aux_td(d, divdiff, states, CurrentLength, num_elem, t, q, qubit, chi, omega, t_k, sum_final_elements);
+        return;
+    }
+    
+   
+    for(int i=0; i < 2; i++){
+        const auto curr_elem = divdiff[*num_elem];
+            
+        const double& beta_coefficient = curr_elem.coefficient;
+        const auto& element_omega = curr_elem.omega[*CurrentLength];
+        const auto& state_n = states[*CurrentLength];
+        cout << "num_elem: " << *num_elem << endl;
+        cout << "CurrentLength: " << *CurrentLength << endl;
+        cout << "states size: " << states.size() << endl;
+        cout << "element_omega: " << element_omega << endl;
+        cout << "state_n: " << state_n << endl;
+        cout << "beta_coefficient: " << beta_coefficient << endl;
+        cout << "qubit: " << qubit << endl;
+        cout << "chi: " << chi << endl;
+
+        complex<double> n;
+        n = (-j * t * (state_n * chi * (qubit) + element_omega * omega ));
+        
+        // print n
+        std::cout << "n: " << n << std::endl;
+        cout << n.imag() << endl;  
+        
+        d.AddElement(n);
+        *CurrentLength += 1;
+
+        //final state
+        if(*CurrentLength == (states.size())){
+            cout << "Final state reached. CurrentLength: " << *CurrentLength << endl;
+            //cal z_n 
+            complex<ExExFloat> z_n = d.divdiffs[*CurrentLength - 1];
+            // z_n.real().print();
+            // cout << endl;
+            // z_n.imag().print();
+            // cout << endl;
+            // double real = z_n.real().get_double();
+            // double imag = z_n.imag().get_double();
+            //print real and imag
+            // std::cout << "Divdiff = " << real << " + " << imag << "i" << std::endl;
+            // //print divdiffs elements
+            // d.PrintList(d.divdiffs, d.CurrentLength, "Divdiffs");
+            
+            complex<ExExFloat> final_element = (z_n * cal_neg_i_pow(q) * pow(t, q)) /factorial(q) * beta_coefficient;//TODO: switch to complex_Ex?
+            
+            complex_Ex start_time_phase = complex_Ex(cos(omega * element_omega * t_k), sin(omega * element_omega * t_k));
+            //print start_time_phase
+            cout << "Start time phase: ";
+            print_complex_Ex(start_time_phase);
+            complex_Ex res = complex_mult(complex_Ex(final_element.real(), final_element.imag()), start_time_phase);
+            cout << "Resulting element: ";
+            print_complex_Ex(res);
+            // complex<ExExFloat> norm_real = z_n.real() * cal_neg_i_pow(q) * pow(t, q) / factorial(q) ;
+            // complex<ExExFloat> norm_imag = z_n.imag() * (-1) * cal_neg_i_pow(q+1) * pow(t, q) / factorial(q);// (-it)^q / q! * Imag = (-it)^q / q! * (i) * Imag.real = (-i)^q+1 * t^q * -Imag.real / q!
+            // complex<ExExFloat> final_element = (norm_real + norm_imag) * beta_coefficient;
+
+            //add the divdiff element to the total sum
+            // *sum_final_elements = *sum_final_elements + res; 
+            sum_final_elements.real += res.real;
+            sum_final_elements.imag += res.imag;
+            // print sum_final_elements
+            cout << "Sum final elements so far: ";
+            print_complex_Ex(sum_final_elements);
+            cout << endl;
+            *num_elem += 1;
+
+        }else{// middle states
+            cout << "Middle state. CurrentLength: " << *CurrentLength << endl;
+            cal_divdiff_aux_td(d, divdiff, states, CurrentLength, num_elem, t, q, qubit, chi, omega, t_k, sum_final_elements);
+        }
+
+        d.RemoveElement();
+        *CurrentLength -= 1;
+    }
+    return;
+}
+
+// set divdiff calculation
+complex_Ex cal_divdiff_td(const std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>> &coefficient,
+                             double t, int q, int qubit, double chi, double omega, int target_step, int t_k) {
+    auto divdiff = std::get<0>(coefficient);
+    auto energy_coefficient = std::get<1>(coefficient);
+    auto final_state = std::get<2>(coefficient);
+    auto states = std::get<3>(coefficient);
+    
+    //calculate divided differences
+    // divdiff_init();
+
+    divdiffcomplex d(14,500);// max step is 14)
+
+    // complex<ExExFloat> sum_final_elements;
+    // sum_final_elements = 0;
+
+    complex_Ex sum_final_elements = complex_Ex(0,0);
+
+    //print divdiff size
+    int num_elem = 0;
+    int CurrentLength = 0;
+
+    cal_divdiff_aux_td(d, divdiff, states, &CurrentLength, &num_elem, t, q, qubit, chi, omega, t_k, sum_final_elements);
+    
+    // print sum_final_elements
+    // if(q == 13 && target_step == 13)
+    // std::cout << "Sum final elements: " << sum_final_elements << std::endl;
+    
+    // return sum_final_elements * energy_coefficient;
+
+    sum_final_elements.real = sum_final_elements.real * energy_coefficient;
+    sum_final_elements.imag = sum_final_elements.imag * energy_coefficient;
+
+    return sum_final_elements;
+        
+}
+
+
+
 
 void cal_divdiff_aux(divdiffcomplex &d, const vector<DivdiffElement> &divdiff, const vector<int> &states, int *CurrentLength, int *num_elem, double t, int q, int qubit, double chi, double omega, complex<ExExFloat> *sum_final_elements){
     complex<double> j(0, 1);
@@ -519,7 +681,7 @@ void cal_divdiff_aux(divdiffcomplex &d, const vector<DivdiffElement> &divdiff, c
 }
 
 // set divdiff calculation
-complex<ExExFloat> cal_divdiff(const std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>> &coefficient,
+complex_Ex cal_divdiff(const std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>> &coefficient,
                              double t, int q, int qubit, double chi, double omega, int target_step) {
     auto divdiff = std::get<0>(coefficient);
     auto energy_coefficient = std::get<1>(coefficient);
@@ -544,10 +706,158 @@ complex<ExExFloat> cal_divdiff(const std::tuple<std::vector<DivdiffElement>, dou
     // if(q == 13 && target_step == 13)
     // std::cout << "Sum final elements: " << sum_final_elements << std::endl;
     
+
+    complex_Ex res;
+    res.real = sum_final_elements.real().get_double() * energy_coefficient;
+    res.imag = sum_final_elements.imag().get_double() * energy_coefficient;
+
+    return res;
+    // return sum_final_elements * energy_coefficient;
+
+}
+
+/************** calculate divided differences for specific q and t****************/
+
+void cal_divdiff_aux_orig(divdiffcomplex &d, const vector<DivdiffElement> &divdiff, const vector<int> &states, int *CurrentLength, int *num_elem, double t, int q, int qubit, double chi, double omega, complex<ExExFloat> *sum_final_elements){
+    complex<double> j(0, 1);
+    //first state
+    if (*CurrentLength == 0){
+        const auto curr_elem = divdiff[*num_elem];
+        
+        const double& beta_coefficient = curr_elem.coefficient;
+        const auto& element_omega = curr_elem.omega[*CurrentLength];
+        const auto& state_n = states[*CurrentLength];
+        // std::cout << "(" << element.energy << ", " << element.omega << ", " << element.chi << ", " << element.coefficient << ") ";
+
+        complex<double> n;
+        n = (-j * t * (state_n * chi * (qubit -1) + element_omega * omega));
+        
+        // // print n
+        // std::cout << "n: " << n << std::endl;
+        
+        d.AddElement(n);
+        *CurrentLength += 1;
+
+        cal_divdiff_aux_orig(d, divdiff, states, CurrentLength, num_elem, t, q, qubit, chi, omega, sum_final_elements);
+        return;
+    }
+    
+    //final state
+    if(*CurrentLength == (states.size() - 1)){
+        for(int i=0; i < 2; i++){
+            //load plus/minus
+            const auto curr_elem = divdiff[*num_elem];
+                
+            const double& beta_coefficient = curr_elem.coefficient;
+            const auto& element_omega = curr_elem.omega[*CurrentLength];
+            const auto& state_n = states[*CurrentLength];
+            // std::cout << "(" << element.energy << ", " << element.omega << ", " << element.chi << ", " << element.coefficient << ") ";
+
+            complex<double> n;
+            n = (-j * t * (state_n * chi * (qubit -1) + element_omega * omega ));
+            
+            // // print n
+            // std::cout << "n: " << n << std::endl;
+            
+            d.AddElement(n);
+            *CurrentLength += 1;
+            
+            //cal z_n 
+            complex<ExExFloat> z_n = d.divdiffs[*CurrentLength - 1];
+            // z_n.real().print();
+            // cout << endl;
+            // z_n.imag().print();
+            // cout << endl;
+
+            // double real = z_n.real().get_double();
+            // double imag = z_n.imag().get_double();
+            //print real and imag
+            // std::cout << "Divdiff = " << real << " + " << imag << "i" << std::endl;
+
+            // //print divdiffs elements
+            // d.PrintList(d.divdiffs, d.CurrentLength, "Divdiffs");
+            
+            complex<ExExFloat> final_element = (z_n * cal_neg_i_pow(q) * pow(t, q)) /factorial(q) * beta_coefficient;
+            // complex<double> final_element_double = final_element.real().get_double() + 1j * final_element.imag().get_double() ;  
+            
+            // complex<ExExFloat> norm_real = z_n.real() * cal_neg_i_pow(q) * pow(t, q) / factorial(q) ;
+            // complex<ExExFloat> norm_imag = z_n.imag() * (-1) * cal_neg_i_pow(q+1) * pow(t, q) / factorial(q);// (-it)^q / q! * Imag = (-it)^q / q! * (i) * Imag.real = (-i)^q+1 * t^q * -Imag.real / q!
+            // complex<ExExFloat> final_element = (norm_real + norm_imag) * beta_coefficient;
+
+            // //normalize the divided differences by (-it)^q / q! * beta_coefficient
+            // complex<double> norm_real = cal_neg_i_pow(q) * std::pow(t, q) * real / factorial(q) ;
+            // complex<double> norm_imag = cal_neg_i_pow(q+1) * std::pow(t, q) * (-imag) / factorial(q);// (-it)^q / q! * Imag = (-it)^q / q! * (i) * Imag.real = (-i)^q+1 * t^q * -Imag.real / q!
+            // complex<double> final_element = (norm_real + norm_imag) * beta_coefficient;
+
+            //add the divdiff element to the total sum
+            *sum_final_elements = *sum_final_elements + final_element; 
+            *num_elem += 1;
+
+            d.RemoveElement();
+            *CurrentLength -= 1;
+        }
+        return;
+    }
+    
+    //middle states
+    for(int i=0; i < 2; i++){
+        const auto curr_elem = divdiff[*num_elem];
+            
+        const double& beta_coefficient = curr_elem.coefficient;
+        const auto& element_omega = curr_elem.omega[*CurrentLength];
+        const auto& state_n = states[*CurrentLength];
+        // std::cout << "(" << element.energy << ", " << element.omega << ", " << element.chi << ", " << element.coefficient << ") ";
+
+        complex<double> n;
+        n = (-j * t * (state_n * chi * (qubit-1) + element_omega * omega ));
+        
+        // // print n
+        // std::cout << "n: " << n << std::endl;
+        
+        d.AddElement(n);
+        *CurrentLength += 1;
+
+        cal_divdiff_aux_orig(d, divdiff, states, CurrentLength, num_elem, t, q, qubit, chi, omega, sum_final_elements);
+
+        d.RemoveElement();
+        *CurrentLength -= 1;
+    }
+    return;
+}
+
+// set divdiff calculation
+complex<ExExFloat> cal_divdiff_orig(const std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>> &coefficient,
+                             double t, int q, int qubit, double chi, double omega, int target_step) {
+    auto divdiff = std::get<0>(coefficient);
+    auto energy_coefficient = std::get<1>(coefficient);
+    auto final_state = std::get<2>(coefficient);
+    auto states = std::get<3>(coefficient);
+    
+    //calculate divided differences
+    // divdiff_init();
+
+    divdiffcomplex d(14,500);// max step is 14)
+
+    complex<ExExFloat> sum_final_elements;
+    sum_final_elements = 0;
+
+    //print divdiff size
+    int num_elem = 0;
+    int CurrentLength = 0;
+
+    cal_divdiff_aux_orig(d, divdiff, states, &CurrentLength, &num_elem, t, q, qubit, chi, omega, &sum_final_elements);
+    
+    // print sum_final_elements
+    // if(q == 13 && target_step == 13)
+    // std::cout << "Sum final elements: " << sum_final_elements << std::endl;
+    
     return sum_final_elements * energy_coefficient;
 
         
 }
+
+
+
 
 complex_Ex cal_divdiff_const_amp(const std::tuple<double, int, std::vector<int>> &coefficient,
                              double t, int q, int qubit, double chi) {
@@ -631,10 +941,10 @@ complex_Ex cal_divdiff_sin_amp(const std::tuple<double, int, std::vector<int>> &
     return res;
 }
 
-complex_Ex cal_divdiff_sin_amp_jc(const std::tuple<double, step, std::vector<step>> &coefficient,
+complex_Ex cal_divdiff_jc(const std::tuple<double, step, std::vector<step>, step> &coefficient,
                              double t, int q, int qubit, double chi, double alpha, double delta) {
-    auto energy_coefficient = std::get<0>(coefficient);
-    auto final_state = std::get<1>(coefficient);
+    // auto energy_coefficient = std::get<0>(coefficient);
+    // auto final_state = std::get<1>(coefficient);
     auto states = std::get<2>(coefficient);
     complex<double> j(0, 1);
 
@@ -678,9 +988,9 @@ complex_Ex cal_divdiff_sin_amp_jc(const std::tuple<double, step, std::vector<ste
     complex<ExExFloat> z_n = d.divdiffs[states.size() - 1];
     complex<ExExFloat> final_element = (z_n * cal_neg_i_pow(q) * pow(t, q)) /factorial(q);
 
-    complex_Ex res;
-    res.real = final_element.real().get_double() * energy_coefficient;
-    res.imag = final_element.imag().get_double() * energy_coefficient;
+    complex_Ex res;//TODO: check if need complex_Ex or complex<ExFloat>
+    res.real = final_element.real().get_double();
+    res.imag = final_element.imag().get_double();
 
     return res;
 }
@@ -738,114 +1048,20 @@ complex_Ex operator*( complex_Ex a, double x) {
 }
 
 double abs2(complex_Ex z) {
-    divdiff_init();
     ExExFloat res1 = z.real * z.real;
     ExExFloat res2 = z.imag * z.imag;
     ExExFloat res = res1 + res2;
-    divdiff_clear_up();
     return res.get_double();
 }
 
 complex_Ex conj(complex_Ex z) {
-    divdiff_init();
     complex_Ex res;
 
     res.real = z.real;
     res.imag = z.imag * (-1);
-    divdiff_clear_up();
 
     return res;
 }
-
-// ==== Typedefs ====
-using mat_c = vector<vector<complex_Ex>>;
-using vec_c = vector<complex_Ex>;
-
-// ==== Polynomial evaluation ====
-mat_c poly_eval(double x, const vector<mat_c>& C) {
-    int N = C[0].size();
-    mat_c result(N, vec_c(N, complex_Ex(0, 0)));
-
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            for (size_t k = 0; k < C.size(); ++k)
-                result[i][j] = result[i][j] + C[k][i][j] * pow(x, k);
-
-    return result;
-}
-
-// ==== Matrix multiply ====
-mat_c matmul(const mat_c& A, const mat_c& B) {
-    int N = A.size();
-    mat_c result(N, vec_c(N, complex_Ex(0, 0)));
-
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            for (int k = 0; k < N; ++k)
-                result[i][j] = result[i][j] + A[i][k] * B[k][j];
-
-    return result;
-}
-
-// ==== Matrix-vector multiply ====
-vec_c matvec(const mat_c& M, const vec_c& v) {
-    int N = M.size();
-    vec_c result(N, complex_Ex(0, 0));
-
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            result[i] = result[i] + M[i][j] * v[j];
-
-    return result;
-}
-
-// ==== Inner product ====
-complex_Ex inner(const vec_c& a, const vec_c& b) {
-    complex_Ex sum(0, 0);
-    for (size_t i = 0; i < a.size(); ++i)
-        sum = sum + conj(a[i]) * b[i];
-    return sum;
-}
-
-// ==== Objective function ====
-class Objective {
-public:
-    vector<mat_c> C;
-    vec_c start, target;
-
-    Objective(const vector<mat_c>& C_in, const vec_c& s, const vec_c& t)
-        : C(C_in), start(s), target(t) {}
-
-    double operator()(const dlib::matrix<double, 0, 1>& x) const {
-        mat_c M = identity_matrix(C[0].size());
-
-        for (size_t i = 0; i < x.size(); ++i)
-            M = matmul(M, poly_eval(x(i), C));
-
-        vec_c psi = matvec(M, start);
-
-        // Normalize psi
-        double norm_psi = 0.0;
-        for (const auto& z : psi) norm_psi += abs2(z);
-        norm_psi = sqrt(norm_psi);
-
-        if (norm_psi > 1e-12) {
-            for (auto& z : psi)
-                z = z * (1.0 / norm_psi);
-        }
-
-        complex_Ex amp = inner(target, psi);
-        return 1.0 - abs2(amp);
-    }
-
-    static mat_c identity_matrix(int N) {
-        mat_c I(N, vec_c(N, complex_Ex(0, 0)));
-        for (int i = 0; i < N; ++i)
-            I[i][i] = complex_Ex(1, 0);
-        return I;
-    }
-};
-
 
 
 

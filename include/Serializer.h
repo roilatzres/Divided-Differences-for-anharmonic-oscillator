@@ -102,6 +102,121 @@ vector<vector<step>> load_binary_perm_jc(std::string& filename) {
     return data;
 }
 
+void save_binary_orig(
+    const std::vector<std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>>>& data,
+    const std::string& filename)
+{
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for writing: " << filename << std::endl;
+        return;
+    }
+
+    uint64_t num_entries = data.size();
+    file.write(reinterpret_cast<const char*>(&num_entries), sizeof(num_entries));
+
+    for (const auto& [divdiff_vec, energy_coeff, final_state, states] : data) {
+        // Save number of DivdiffElement
+        uint64_t num_divdiff = divdiff_vec.size();
+        file.write(reinterpret_cast<const char*>(&num_divdiff), sizeof(num_divdiff));
+
+        // Save each DivdiffElement
+        for (const auto& elem : divdiff_vec) {
+            // Save coefficient
+            file.write(reinterpret_cast<const char*>(&elem.coefficient), sizeof(elem.coefficient));
+
+            // Save omega vector
+            uint64_t omega_size = elem.omega.size();
+            file.write(reinterpret_cast<const char*>(&omega_size), sizeof(omega_size));
+            if (omega_size > 0) {
+                file.write(reinterpret_cast<const char*>(elem.omega.data()), omega_size * sizeof(int));
+            }
+        }
+
+        // Save energy_coeff
+        file.write(reinterpret_cast<const char*>(&energy_coeff), sizeof(energy_coeff));
+
+        // Save final_state
+        file.write(reinterpret_cast<const char*>(&final_state), sizeof(final_state));
+
+        // Save states vector
+        uint64_t states_size = states.size();
+        file.write(reinterpret_cast<const char*>(&states_size), sizeof(states_size));
+        if (states_size > 0) {
+            file.write(reinterpret_cast<const char*>(states.data()), states_size * sizeof(int));
+        }
+    }
+
+    file.close();
+}
+
+
+std::vector<std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>>> 
+load_binary_orig(const std::string& filename)
+{
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file for reading: " << filename << std::endl;
+        return {};
+    }
+
+    uint64_t num_entries;
+    file.read(reinterpret_cast<char*>(&num_entries), sizeof(num_entries));
+
+    std::vector<std::tuple<std::vector<DivdiffElement>, double, int, std::vector<int>>> data;
+    data.reserve(num_entries);
+
+    for (uint64_t e = 0; e < num_entries; ++e) {
+        // Read number of divdiff elements
+        uint64_t num_divdiff;
+        file.read(reinterpret_cast<char*>(&num_divdiff), sizeof(num_divdiff));
+
+        std::vector<DivdiffElement> divdiff_vec;
+        divdiff_vec.reserve(num_divdiff);
+
+        for (uint64_t i = 0; i < num_divdiff; ++i) {
+            DivdiffElement elem;
+            // Read coefficient
+            file.read(reinterpret_cast<char*>(&elem.coefficient), sizeof(elem.coefficient));
+
+            // Read omega size
+            uint64_t omega_size;
+            file.read(reinterpret_cast<char*>(&omega_size), sizeof(omega_size));
+
+            elem.omega.resize(omega_size);
+            if (omega_size > 0) {
+                file.read(reinterpret_cast<char*>(elem.omega.data()), omega_size * sizeof(int));
+            }
+
+            divdiff_vec.push_back(std::move(elem));
+        }
+
+        // Read energy coefficient
+        double energy_coeff;
+        file.read(reinterpret_cast<char*>(&energy_coeff), sizeof(energy_coeff));
+
+        // Read final_state
+        int final_state;
+        file.read(reinterpret_cast<char*>(&final_state), sizeof(final_state));
+
+        // Read states vector
+        uint64_t states_size;
+        file.read(reinterpret_cast<char*>(&states_size), sizeof(states_size));
+
+        std::vector<int> states(states_size);
+        if (states_size > 0) {
+            file.read(reinterpret_cast<char*>(states.data()), states_size * sizeof(int));
+        }
+
+        data.emplace_back(std::move(divdiff_vec), energy_coeff, final_state, std::move(states));
+    }
+
+    file.close();
+    return data;
+}
+
+
+
 void save_binary_coef(const std::vector<std::tuple<double, int, std::vector<int>>>& data, const std::string& filename) {
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
@@ -292,6 +407,167 @@ complex_Ex load_binary_complexEx(const std::string& filename) {
 
     file.close();
     return result;
+}
+
+
+// Save a vector of complex_Ex to a binary file
+inline void save_binary_q_amp_vector(std::vector<complex_Ex>& data, const std::string& filename) {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Could not open file for writing: " << filename << std::endl;
+        return;
+    }
+    uint64_t len = data.size();
+    file.write(reinterpret_cast<const char*>(&len), sizeof(len));
+    for (auto& c : data) {
+        double real_val = c.real.get_double();
+        double imag_val = c.imag.get_double();
+        file.write(reinterpret_cast<const char*>(&real_val), sizeof(real_val));
+        file.write(reinterpret_cast<const char*>(&imag_val), sizeof(imag_val));
+    }
+    file.close();
+}
+
+// Load a vector of complex_Ex from a binary file
+inline std::vector<complex_Ex> load_binary_q_amp_vector(const std::string& filename) {
+    std::vector<complex_Ex> out;
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Could not open file for reading: " << filename << std::endl;
+        return out;
+    }
+    uint64_t len = 0;
+    file.read(reinterpret_cast<char*>(&len), sizeof(len));
+    out.reserve(static_cast<size_t>(len));
+    for (uint64_t i = 0; i < len; ++i) {
+        double real_val = 0.0, imag_val = 0.0;
+        file.read(reinterpret_cast<char*>(&real_val), sizeof(real_val));
+        file.read(reinterpret_cast<char*>(&imag_val), sizeof(imag_val));
+        complex_Ex c;
+        c.real = ExExFloat(real_val);
+        c.imag = ExExFloat(imag_val);
+        out.push_back(std::move(c));
+    }
+    file.close();
+    return out;
+}
+
+
+// Save a vector of (complex_Ex, int) tuples (q_amp_vec) to a binary file
+inline void save_binary_q_amp_tuple_disp(
+     std::vector<std::tuple<complex_Ex, int>>& q_amp_vec,
+    const std::string& filename
+) {
+    std::ofstream out(filename, std::ios::binary);
+    if (!out) {
+        std::cerr << "Could not open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    uint64_t size = q_amp_vec.size();
+    out.write(reinterpret_cast<char*>(&size), sizeof(size));
+
+    for (auto& tup : q_amp_vec) {
+        complex_Ex& c = std::get<0>(tup);
+        int final_state = std::get<1>(tup);
+
+        double real = c.real.get_double();
+        double imag = c.imag.get_double();
+
+        out.write(reinterpret_cast<const char*>(&final_state), sizeof(final_state));
+        out.write(reinterpret_cast<const char*>(&real), sizeof(real));
+        out.write(reinterpret_cast<const char*>(&imag), sizeof(imag));
+    }
+
+    out.close();
+}
+
+// Load a vector of (complex_Ex, int) tuples (q_amp_vec) from a binary file
+inline std::vector<std::tuple<complex_Ex, int>> load_binary_q_amp_tuple_disp(const std::string& filename) {
+    std::vector<std::tuple<complex_Ex, int>> q_amp_vec;
+    std::ifstream in(filename, std::ios::binary);
+    if (!in) {
+        std::cerr << "Could not open file for reading: " << filename << std::endl;
+        return q_amp_vec;
+    }
+
+    uint64_t size = 0;
+    in.read(reinterpret_cast<char*>(&size), sizeof(size));
+    q_amp_vec.reserve(static_cast<size_t>(size));
+
+    for (uint64_t i = 0; i < size; ++i) {
+        int final_state = 0;
+        double real = 0.0, imag = 0.0;
+
+        in.read(reinterpret_cast<char*>(&final_state), sizeof(final_state));
+        in.read(reinterpret_cast<char*>(&real), sizeof(real));
+        in.read(reinterpret_cast<char*>(&imag), sizeof(imag));
+
+        complex_Ex c;
+        c.real = ExExFloat(real);
+        c.imag = ExExFloat(imag);
+
+        q_amp_vec.emplace_back(c, final_state);
+    }
+
+    in.close();
+    return q_amp_vec;
+}
+
+
+// Save a vector of q_amp_tuple to a binary file
+inline void save_binary_q_amp_tuple_jc(
+    const std::vector<std::tuple<double, step, complex_Ex>>& q_amp_tuple_vec,
+    const std::string& filename
+) {
+    std::ofstream out(filename, std::ios::binary);
+    if (!out) {
+        std::cerr << "Could not open file for writing: " << filename << std::endl;
+        return;
+    }
+    size_t size = q_amp_tuple_vec.size();
+    out.write(reinterpret_cast<const char*>(&size), sizeof(size));
+    for (const auto& tup : q_amp_tuple_vec) {
+        double coeff = std::get<0>(tup);
+        step s = std::get<1>(tup);
+        complex_Ex c = std::get<2>(tup);
+        out.write(reinterpret_cast<const char*>(&coeff), sizeof(coeff));
+        out.write(reinterpret_cast<const char*>(&s.cavity), sizeof(s.cavity));
+        out.write(reinterpret_cast<const char*>(&s.qubit), sizeof(s.qubit));
+        double real = c.real.get_double();
+        double imag = c.imag.get_double();
+        out.write(reinterpret_cast<const char*>(&real), sizeof(real));
+        out.write(reinterpret_cast<const char*>(&imag), sizeof(imag));
+    }
+    out.close();
+}
+
+// Load a vector of q_amp_tuple from a binary file
+inline std::vector<std::tuple<double, step, complex_Ex>> load_binary_q_amp_tuple_jc(const std::string& filename) {
+    std::vector<std::tuple<double, step, complex_Ex>> q_amp_tuple_vec;
+    std::ifstream in(filename, std::ios::binary);
+    if (!in) {
+        std::cerr << "Could not open file for reading: " << filename << std::endl;
+        return {};
+    }
+    size_t size = 0;
+    in.read(reinterpret_cast<char*>(&size), sizeof(size));
+    for (size_t i = 0; i < size; ++i) {
+        double coeff;
+        step s;
+        double real, imag;
+        in.read(reinterpret_cast<char*>(&coeff), sizeof(coeff));
+        in.read(reinterpret_cast<char*>(&s.cavity), sizeof(s.cavity));
+        in.read(reinterpret_cast<char*>(&s.qubit), sizeof(s.qubit));
+        in.read(reinterpret_cast<char*>(&real), sizeof(real));
+        in.read(reinterpret_cast<char*>(&imag), sizeof(imag));
+        complex_Ex c;
+        c.real = ExExFloat(real);
+        c.imag = ExExFloat(imag);
+        q_amp_tuple_vec.emplace_back(coeff, s, c);
+    }
+    in.close();
+    return q_amp_tuple_vec;
 }
 
 // ****************************************************************************************

@@ -11,3 +11,5 @@ amplitudes*
 sin_pulse_log/*
 ta for base/*
 optimizer_runs/*
+__pycache__/*
+optimier_runs/*
