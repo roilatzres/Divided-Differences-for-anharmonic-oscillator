@@ -2,7 +2,9 @@
 
 This repository contains the C++ implementation of a novel simulation method based on **Divided Differences** and the **Permutation Matrix Representation (PMR)**.
 
-This code was developed as part of the thesis **[Insert Thesis Title Here]** to simulate the dynamics of superconducting circuits driven by an **Anti-Symmetric (AS) pulse**. We demonstrate the method’s integration with the dispersive Hamiltonian model and analyze the resulting simulation dynamics.
+This code was developed as part of the thesis **Efficient transition amplitudes
+calculation for fast pulse
+simulation** to simulate the dynamics of superconducting circuits driven by an **Anti-Symmetric (AS) pulse**. We demonstrate the method’s integration with the dispersive Hamiltonian model and analyze the resulting simulation dynamics.
 
 Additionally, this project investigates the inherent **time-memory trade-off** of the method, examining the computational complexity and evaluating various optimization strategies to balance resource constraints.
 
